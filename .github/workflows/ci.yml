@@ -89,10 +89,13 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --no-modify-path
           echo "CARGO_HOME=$CARGO_HOME" >> "$GITHUB_ENV"
           echo "RUSTUP_HOME=$RUSTUP_HOME" >> "$GITHUB_ENV"
-          echo "$CARGO_HOME/bin" >> "$GITHUB_PATH"
-      - run: cargo test --workspace --locked
+      - name: Test
+        run: |
+          export PATH="$CARGO_HOME/bin:$PATH"
+          cargo test --workspace --locked
       - name: Detect the distribution family
         run: |
+          export PATH="$CARGO_HOME/bin:$PATH"
           cargo run --locked -q -- doctor --json > doctor.json
           cat doctor.json
           grep -q '"family": "${{ matrix.family }}"' doctor.json
