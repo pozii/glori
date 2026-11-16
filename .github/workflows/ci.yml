@@ -37,7 +37,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.85
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.85"
       - uses: Swatinem/rust-cache@v2
       - run: cargo check --workspace --all-targets --locked
 
@@ -80,9 +82,14 @@ jobs:
       - run: ${{ matrix.setup }}
       - uses: actions/checkout@v4
       - name: Install Rust
+        env:
+          CARGO_HOME: /opt/cargo
+          RUSTUP_HOME: /opt/rustup
         run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --no-modify-path
+          echo "CARGO_HOME=$CARGO_HOME" >> "$GITHUB_ENV"
+          echo "RUSTUP_HOME=$RUSTUP_HOME" >> "$GITHUB_ENV"
+          echo "$CARGO_HOME/bin" >> "$GITHUB_PATH"
       - run: cargo test --workspace --locked
       - name: Detect the distribution family
         run: |
