@@ -31,9 +31,8 @@ pub fn classify(parts: &[String]) -> Option<Kind> {
     if file.contains(".so") {
         return None;
     }
-    if let Some(section) = man_section(file)
-        && dirs.iter().any(|dir| is_man_dir(dir))
-    {
+    let in_man_dir = dirs.iter().any(|dir| is_man_dir(dir));
+    if let (Some(section), true) = (man_section(file), in_man_dir) {
         return Some(Kind::Man(section));
     }
     if file.ends_with(".bash") || file.ends_with(".bash-completion") {
