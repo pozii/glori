@@ -1,37 +1,8 @@
 use std::{fs, path::Path, process::Command};
 
-use serde::Serialize;
+use super::{Trust, Verdict};
 
-use crate::format::Format;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Trust {
-    Verified,
-    Unsigned,
-    Invalid,
-    Unverifiable,
-}
-
-impl Trust {
-    pub fn label(self) -> &'static str {
-        match self {
-            Trust::Verified => "verified",
-            Trust::Unsigned => "not signed",
-            Trust::Invalid => "verification failed",
-            Trust::Unverifiable => "cannot be checked for this format",
-        }
-    }
-}
-
-pub fn check(format: Format, file: &Path) -> Trust {
-    match format {
-        Format::Rpm => check_rpm(file),
-        _ => Trust::Unverifiable,
-    }
-}
-
-fn check_rpm(file: &Path) -> Trust {
+pub fn check(file: &Path) -> Verdict {
     let path = std::path::absolute(file).unwrap_or_else(|_| file.to_path_buf());
     let canonical = fs::canonicalize(&path).unwrap_or(path);
     Command::new("rpm")
@@ -39,13 +10,31 @@ fn check_rpm(file: &Path) -> Trust {
         .arg(canonical)
         .env("LC_ALL", "C")
         .output()
-        .map_or(Trust::Unverifiable, |output| {
-            parse_rpm_checksig(
-                &String::from_utf8_lossy(&output.stdout),
-                &String::from_utf8_lossy(&output.stderr),
-                output.status.success(),
-            )
-        })
+        .map_or_else(
+            |_| {
+                Verdict::new(
+                    Trust::Unverifiable,
+                    "rpm is not installed, so its signature was not checked",
+                )
+            },
+            |output| {
+                let trust = parse_rpm_checksig(
+                    &String::from_utf8_lossy(&output.stdout),
+                    &String::from_utf8_lossy(&output.stderr),
+                    output.status.success(),
+                );
+                Verdict::new(trust, describe(trust))
+            },
+        )
+}
+
+fn describe(trust: Trust) -> &'static str {
+    match trust {
+        Trust::Verified => "RPM signature is valid",
+        Trust::Unsigned => "the RPM carries no signature",
+        Trust::Invalid => "the RPM signature or digests do not check out",
+        Trust::Unverifiable => "rpm gave no usable answer",
+    }
 }
 
 pub fn parse_rpm_checksig(stdout: &str, stderr: &str, success: bool) -> Trust {
@@ -165,15 +154,5 @@ mod tests {
     #[test]
     fn unexpected_output_is_unverifiable() {
         assert_eq!(parse_rpm_checksig("", "", true), Trust::Unverifiable);
-    }
-
-    #[test]
-    fn formats_without_embedded_signatures_are_unverifiable() {
-        assert_eq!(check(Format::Deb, Path::new("a.deb")), Trust::Unverifiable);
-        assert_eq!(check(Format::AppImage, Path::new("a")), Trust::Unverifiable);
-        assert_eq!(
-            check(Format::TarGz, Path::new("a.tar.gz")),
-            Trust::Unverifiable
-        );
     }
 }

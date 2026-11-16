@@ -4,7 +4,7 @@ use anyhow::bail;
 use glori_core::{
     Elevation, Operation, Paths, Trust,
     installer::{self, Input},
-    privilege,
+    privilege, verify,
 };
 use serde::Serialize;
 
@@ -25,6 +25,7 @@ pub struct Options {
     pub allow_untrusted: bool,
     pub json: bool,
     pub name: Option<String>,
+    pub sha256: Option<String>,
 }
 
 pub fn run(file: &Path, options: Options) -> anyhow::Result<()> {
@@ -34,11 +35,12 @@ pub fn run(file: &Path, options: Options) -> anyhow::Result<()> {
         allow_untrusted,
         json,
         name,
+        sha256,
     } = options;
     if json && !dry_run {
         bail!("--json is only supported together with --dry-run");
     }
-    let summary = Summary::detect(file)?;
+    let summary = Summary::detect(file, &verify::Options { sha256 })?;
     let paths = Paths::from_env()?;
     let input = Input {
         file,
@@ -61,7 +63,7 @@ pub fn run(file: &Path, options: Options) -> anyhow::Result<()> {
         println!("{}", output::dim("Dry run: nothing was changed."));
         return Ok(());
     }
-    let question = trust_question(summary.signature, allow_untrusted, yes)?;
+    let question = trust_question(summary.verification, allow_untrusted, yes)?;
     let elevation = execute::needs_elevation(&operations, elevation)?;
     if !yes && !prompt::confirm(question)? {
         bail!("cancelled, nothing was changed");
@@ -71,9 +73,9 @@ pub fn run(file: &Path, options: Options) -> anyhow::Result<()> {
 
 fn trust_question(trust: Trust, allow_untrusted: bool, yes: bool) -> anyhow::Result<&'static str> {
     match (trust, allow_untrusted, yes) {
-        (Trust::Invalid, false, _) => bail!(
-            "the signature check failed; refusing to install (use --allow-untrusted to override)"
-        ),
+        (Trust::Invalid, false, _) => {
+            bail!("verification failed; refusing to install (use --allow-untrusted to override)")
+        }
         (Trust::Unsigned, false, true) => {
             bail!("the package is not signed; rerun with --allow-untrusted to install it anyway")
         }

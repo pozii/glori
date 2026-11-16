@@ -14,9 +14,9 @@ pub mod privilege;
 pub mod registry;
 pub mod remove;
 pub mod runner;
-pub mod signature;
 pub mod step;
 pub mod tools;
+pub mod verify;
 mod zstd_frames;
 
 pub use distro::{Distro, Family, PackageManager};
@@ -26,5 +26,5 @@ pub use operation::Operation;
 pub use paths::Paths;
 pub use plan::Strategy;
 pub use privilege::Elevation;
-pub use signature::Trust;
 pub use step::Step;
+pub use verify::{Trust, Verdict};

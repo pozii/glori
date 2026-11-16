@@ -26,16 +26,19 @@ pub struct Cli {
 pub enum Command {
     #[command(
         about = "Show the detected format, distribution and install plan for a file",
-        after_help = "Examples:\n  glori info ./app.deb\n  glori info ./app.tar.gz --json"
+        after_help = "Examples:\n  glori info ./app.deb\n  glori info ./app.tar.gz --sha256 <hash>\n  glori info ./app.tar.gz --json"
     )]
     Info {
         #[arg(help = "Path to the package or archive")]
         file: PathBuf,
+
+        #[arg(long, value_name = "HEX", value_parser = parse_sha256, help = "Expected SHA-256 of the file")]
+        sha256: Option<String>,
     },
 
     #[command(
         about = "Install a package, archive or AppImage from a local file",
-        after_help = "Examples:\n  glori install ./app.rpm\n  glori install ./tool-1.2.tar.gz --dry-run\n  glori install ./App.AppImage --name myapp --yes"
+        after_help = "Examples:\n  glori install ./app.rpm\n  glori install ./tool-1.2.tar.gz --dry-run\n  glori install ./App.AppImage --name myapp --yes\n  glori install ./tool.tar.gz --sha256 <hash>"
     )]
     Install {
         #[arg(help = "Path to the package")]
@@ -47,9 +50,12 @@ pub enum Command {
         #[arg(short, long, help = "Do not ask for confirmation")]
         yes: bool,
 
+        #[arg(long, value_name = "HEX", value_parser = parse_sha256, help = "Expected SHA-256 of the file; the install is refused if it differs")]
+        sha256: Option<String>,
+
         #[arg(
             long,
-            help = "Install even if the signature is missing or fails verification"
+            help = "Install even if the signature is missing or the verification fails"
         )]
         allow_untrusted: bool,
 
@@ -89,4 +95,12 @@ pub enum Command {
         #[arg(value_enum, help = "Target shell")]
         shell: Shell,
     },
+}
+
+fn parse_sha256(text: &str) -> Result<String, String> {
+    if glori_core::verify::checksum::is_sha256(text) {
+        Ok(text.to_lowercase())
+    } else {
+        Err("expected 64 hexadecimal characters".to_string())
+    }
 }

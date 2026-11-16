@@ -29,6 +29,7 @@ Early development, no release yet. Working today:
 
 - `glori install` for packages that belong to your distribution (`.deb` on Debian-based systems, `.rpm` on Fedora and openSUSE, Arch packages on Arch), with RPM signature checks
 - `glori install` for tarballs (`.tar.gz`, `.tar.xz`, `.tar.zst`, `.tar.bz2`) and AppImages, entirely in your home directory, no root needed
+- SHA-256 and GPG verification of downloads
 - `glori list` and `glori remove` for everything installed that way
 - `glori info`, `glori doctor` and shell completions
 
@@ -38,10 +39,10 @@ Not done yet: installing a package from another distribution family (for example
 
 | Command | Purpose |
 |---|---|
-| `glori install <file>` | Install a package, archive or AppImage (`--dry-run`, `--yes`, `--name <name>`, `--allow-untrusted`) |
+| `glori install <file>` | Install a package, archive or AppImage (`--dry-run`, `--yes`, `--name <name>`, `--sha256 <hash>`, `--allow-untrusted`) |
 | `glori remove <name>` | Remove something Glori installed (`--dry-run`, `--yes`) |
 | `glori list` | List what Glori installed |
-| `glori info <file>` | Show format, distribution, signature state and the install plan |
+| `glori info <file>` | Show format, distribution, verification result and the install plan (`--sha256 <hash>`) |
 | `glori doctor` | Check the system and required tools |
 | `glori completions <shell>` | Generate shell completions |
 
@@ -65,8 +66,21 @@ The name and version come from the file name (`ripgrep-15.2.0-x86_64-unknown-lin
 - Glori never overwrites a file that already exists, and `remove` only deletes paths inside the directories above, even if the registry was edited by hand.
 - Archives with absolute paths, `..` components or symlinks that lead out of the install directory are rejected before anything is written.
 - Extraction happens in a temporary directory and is moved into place only on success, so a broken or truncated download leaves nothing behind.
-- RPM signatures are verified with `rpm -K`. A failed check blocks the install, and an unsigned package needs `--allow-untrusted` in non-interactive use. Other formats carry no embedded signature and are reported as not checkable for now.
+- Downloads are checked when there is something to check them against (see below). A failed check blocks the install, and `--allow-untrusted` is needed to go ahead anyway.
 - Every command can show its plan first with `--dry-run`.
+
+## Verifying downloads
+
+`glori info` and `glori install` look for evidence next to the file and show the result in the `Verification` row:
+
+| Evidence | How it is used |
+|---|---|
+| `--sha256 <hash>` | You provide the hash you got from a source you trust. Always checked first. |
+| `<file>.sha256`, `SHA256SUMS` | Found automatically. GNU, BSD and bare-hash formats are understood. |
+| `<file>.asc`, `<file>.sig` | Checked with `gpg` against your own keyring. A signature from a key you do not have is a failure, not a pass. |
+| RPM signature | Checked with `rpm -K`. An unsigned RPM needs `--allow-untrusted` in non-interactive use. |
+
+A checksum file served from the same place as the download proves the file arrived intact, not who published it; only a signature or a hash you obtained separately proves that. When there is nothing to check against, Glori says so and installs normally, since most downloads ship no checksum.
 
 ## Architecture
 

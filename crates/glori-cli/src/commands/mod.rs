@@ -12,12 +12,15 @@ use crate::cli::{Cli, Command};
 
 pub fn run(cli: Cli) -> anyhow::Result<ExitCode> {
     match cli.command {
-        Command::Info { file } => info::run(&file, cli.json).map(|()| ExitCode::SUCCESS),
+        Command::Info { file, sha256 } => {
+            info::run(&file, sha256, cli.json).map(|()| ExitCode::SUCCESS)
+        }
         Command::Install {
             file,
             dry_run,
             yes,
             allow_untrusted,
+            sha256,
             name,
         } => install::run(
             &file,
@@ -27,6 +30,7 @@ pub fn run(cli: Cli) -> anyhow::Result<ExitCode> {
                 allow_untrusted,
                 json: cli.json,
                 name,
+                sha256,
             },
         )
         .map(|()| ExitCode::SUCCESS),

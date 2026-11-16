@@ -166,17 +166,17 @@ fn install_without_confirmation_stops_before_changing_anything() {
 }
 
 #[test]
-fn dry_run_json_reports_the_signature_state() {
+fn dry_run_json_reports_the_verification_state() {
     let file = fixture("sig.deb", DEB_HEADER);
     let plan = dry_run_plan(DEBIAN, &file);
-    assert_eq!(plan["signature"], "unverifiable");
+    assert_eq!(plan["verification"], "unverifiable");
 }
 
 #[test]
-fn info_shows_the_signature_row() {
+fn info_shows_the_verification_row() {
     let file = fixture("sig-info.deb", DEB_HEADER);
     let output = glori_on(DEBIAN, &["info", file.to_str().unwrap()]);
-    assert!(stdout(&output).contains("Signature"));
+    assert!(stdout(&output).contains("Verification"));
 }
 
 #[test]

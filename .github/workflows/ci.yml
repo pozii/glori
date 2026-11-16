@@ -61,23 +61,23 @@ jobs:
           - name: Debian
             image: debian:stable
             family: debian
-            setup: apt-get update && apt-get install -y build-essential curl git ca-certificates
+            setup: apt-get update && apt-get install -y build-essential curl git ca-certificates gnupg
           - name: Ubuntu
             image: ubuntu:latest
             family: debian
-            setup: apt-get update && apt-get install -y build-essential curl git ca-certificates
+            setup: apt-get update && apt-get install -y build-essential curl git ca-certificates gnupg
           - name: Fedora
             image: fedora:latest
             family: fedora
-            setup: dnf install -y gcc curl git
+            setup: dnf install -y gcc curl git gnupg2
           - name: Arch
             image: archlinux:latest
             family: arch
-            setup: pacman -Syu --noconfirm base-devel curl git
+            setup: pacman -Syu --noconfirm base-devel curl git gnupg
           - name: openSUSE
             image: opensuse/tumbleweed:latest
             family: suse
-            setup: zypper --non-interactive install gcc curl git tar gzip
+            setup: zypper --non-interactive install gcc curl git tar gzip gpg2
     steps:
       - run: ${{ matrix.setup }}
       - uses: actions/checkout@v4

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use glori_core::{Distro, Format, Strategy, Trust, distro, format, plan, signature};
+use glori_core::{Distro, Format, Strategy, Trust, distro, format, plan, verify};
 use serde::Serialize;
 
 use crate::output;
@@ -11,21 +11,23 @@ pub struct Summary<'a> {
     pub format: Format,
     pub distro: Distro,
     pub strategy: Strategy,
-    pub signature: Trust,
+    pub verification: Trust,
+    pub verification_detail: Option<String>,
 }
 
 impl<'a> Summary<'a> {
-    pub fn detect(file: &'a Path) -> anyhow::Result<Self> {
+    pub fn detect(file: &'a Path, options: &verify::Options) -> anyhow::Result<Self> {
         let format = format::detect(file)?;
         let distro = distro::detect()?;
         let strategy = plan::plan(format, &distro);
-        let signature = signature::check(format, file);
+        let verdict = verify::check(format, file, options);
         Ok(Summary {
             file,
             format,
             distro,
             strategy,
-            signature,
+            verification: verdict.trust,
+            verification_detail: verdict.detail,
         })
     }
 
@@ -42,10 +44,13 @@ impl<'a> Summary<'a> {
                 ),
             ),
             ("Plan", describe(self.strategy)),
-            ("Signature", paint(self.signature)),
+            (
+                "Verification",
+                paint(self.verification, self.verification_detail.as_deref()),
+            ),
         ];
         for (label, value) in rows {
-            println!("{} {value}", output::bold(&format!("{label:<10}")));
+            println!("{} {value}", output::bold(&format!("{label:<13}")));
         }
     }
 }
@@ -61,11 +66,15 @@ fn describe(strategy: Strategy) -> String {
     }
 }
 
-fn paint(trust: Trust) -> String {
-    match trust {
+fn paint(trust: Trust, detail: Option<&str>) -> String {
+    let label = match trust {
         Trust::Verified => output::green(trust.label()),
         Trust::Unsigned => output::yellow(trust.label()),
         Trust::Invalid => output::red(trust.label()),
-        Trust::Unverifiable => output::dim(trust.label()),
+        Trust::Unverifiable => output::yellow(trust.label()),
+    };
+    match detail {
+        Some(detail) => format!("{label} {}", output::dim(&format!("({detail})"))),
+        None => label,
     }
 }
