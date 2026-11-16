@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use clap::{Parser, Subcommand};
 use clap_complete::Shell;
 
@@ -29,20 +27,20 @@ pub enum Command {
         after_help = "Examples:\n  glori info ./app.deb\n  glori info ./app.tar.gz --sha256 <hash>\n  glori info ./app.tar.gz --json"
     )]
     Info {
-        #[arg(help = "Path to the package or archive")]
-        file: PathBuf,
+        #[arg(help = "Path or http(s) URL of the package or archive")]
+        source: String,
 
         #[arg(long, value_name = "HEX", value_parser = parse_sha256, help = "Expected SHA-256 of the file")]
         sha256: Option<String>,
     },
 
     #[command(
-        about = "Install a package, archive or AppImage from a local file",
-        after_help = "Examples:\n  glori install ./app.rpm\n  glori install ./tool-1.2.tar.gz --dry-run\n  glori install ./App.AppImage --name myapp --yes\n  glori install ./tool.tar.gz --sha256 <hash>\n  glori install ./app.tar.xz --install-deps"
+        about = "Install a package, archive or AppImage from a file or URL",
+        after_help = "Examples:\n  glori install ./app.rpm\n  glori install https://example.com/tool-1.2.tar.gz\n  glori install ./tool-1.2.tar.gz --dry-run\n  glori install ./App.AppImage --name myapp --yes\n  glori install ./tool.tar.gz --sha256 <hash>\n  glori install ./app.tar.xz --install-deps"
     )]
     Install {
-        #[arg(help = "Path to the package")]
-        file: PathBuf,
+        #[arg(help = "Path or http(s) URL of the package")]
+        source: String,
 
         #[arg(long, help = "Show the plan without changing anything")]
         dry_run: bool,

@@ -42,6 +42,7 @@ pub fn run(distro: Distro) -> Report {
         .chain([
             check("sudo", "privilege escalation", false),
             check("pkexec", "graphical privilege escalation", false),
+            check("curl", "download packages from URLs", false),
             check("alien", "convert between deb and rpm", false),
         ])
         .collect();

@@ -35,7 +35,7 @@ Early development, no release yet. Working today:
 - `glori list` and `glori remove` for everything installed that way
 - `glori info`, `glori doctor` and shell completions
 
-Not done yet: installing a package from another distribution family (for example a `.deb` on Fedora), downloading from a URL, extracting icons from AppImages, system-wide installs, and removing packages that were installed through the system package manager.
+Not done yet: installing a package from another distribution family (for example a `.deb` on Fedora), extracting icons from AppImages, system-wide installs, and removing packages that were installed through the system package manager.
 
 ## Commands
 

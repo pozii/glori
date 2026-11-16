@@ -2,6 +2,7 @@ pub mod archive;
 pub mod desktop;
 pub mod distro;
 pub mod doctor;
+pub mod download;
 pub mod error;
 pub mod extras;
 pub mod format;

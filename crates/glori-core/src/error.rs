@@ -46,6 +46,10 @@ pub enum Error {
     NoName(String),
     #[error("the archive is empty")]
     EmptyArchive,
+    #[error("cannot derive a file name from the URL {0}")]
+    NoFileName(String),
+    #[error("download of {url} failed: {reason}")]
+    Download { url: String, reason: String },
     #[error("the registry at {path} is corrupted: {message}")]
     Registry { path: PathBuf, message: String },
 }

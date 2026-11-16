@@ -6,6 +6,7 @@ mod install;
 mod libraries;
 mod list;
 mod remove;
+mod source;
 
 use std::process::ExitCode;
 
@@ -13,11 +14,11 @@ use crate::cli::{Cli, Command};
 
 pub fn run(cli: Cli) -> anyhow::Result<ExitCode> {
     match cli.command {
-        Command::Info { file, sha256 } => {
-            info::run(&file, sha256, cli.json).map(|()| ExitCode::SUCCESS)
+        Command::Info { source, sha256 } => {
+            info::run(&source, sha256, cli.json).map(|()| ExitCode::SUCCESS)
         }
         Command::Install {
-            file,
+            source,
             dry_run,
             yes,
             allow_untrusted,
@@ -25,7 +26,7 @@ pub fn run(cli: Cli) -> anyhow::Result<ExitCode> {
             install_deps,
             name,
         } => install::run(
-            &file,
+            &source,
             install::Options {
                 dry_run,
                 yes,

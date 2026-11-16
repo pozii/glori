@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use anyhow::bail;
 use glori_core::{
     Elevation, Operation, Paths, Trust,
@@ -8,7 +6,7 @@ use glori_core::{
 };
 use serde::Serialize;
 
-use super::{execute, libraries};
+use super::{execute, libraries, source};
 use crate::{output, prompt, report::Summary};
 
 #[derive(Serialize)]
@@ -30,7 +28,7 @@ pub struct Options {
     pub install_deps: bool,
 }
 
-pub fn run(file: &Path, options: Options) -> anyhow::Result<()> {
+pub fn run(input: &str, options: Options) -> anyhow::Result<()> {
     let Options {
         dry_run,
         yes,
@@ -43,6 +41,8 @@ pub fn run(file: &Path, options: Options) -> anyhow::Result<()> {
     if json && !dry_run {
         bail!("--json is only supported together with --dry-run");
     }
+    let source = source::resolve(input, sha256.is_some(), json)?;
+    let file = source.path();
     let summary = Summary::detect(file, &verify::Options { sha256 })?;
     let paths = Paths::from_env()?;
     let manager = summary.distro.family.package_manager();
