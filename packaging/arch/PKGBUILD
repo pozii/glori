@@ -1,0 +1,41 @@
+pkgname=glori
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Install software the same way on every Linux distribution"
+arch=('x86_64' 'aarch64')
+url="https://github.com/pozii/glori"
+license=('Apache-2.0')
+depends=('gcc-libs')
+makedepends=('cargo')
+optdepends=('curl: install and update from URLs' 'gnupg: verify detached signatures')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+prepare() {
+    cd "$pkgname-$pkgver"
+    export RUSTUP_TOOLCHAIN=stable
+    cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+    cd "$pkgname-$pkgver"
+    export RUSTUP_TOOLCHAIN=stable
+    export CARGO_TARGET_DIR=target
+    cargo build --release --frozen -p glori-cli
+}
+
+check() {
+    cd "$pkgname-$pkgver"
+    export RUSTUP_TOOLCHAIN=stable
+    cargo test --frozen --workspace
+}
+
+package() {
+    cd "$pkgname-$pkgver"
+    install -Dm755 target/release/glori "$pkgdir/usr/bin/glori"
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+    target/release/glori completions bash | install -Dm644 /dev/stdin "$pkgdir/usr/share/bash-completion/completions/glori"
+    target/release/glori completions zsh | install -Dm644 /dev/stdin "$pkgdir/usr/share/zsh/site-functions/_glori"
+    target/release/glori completions fish | install -Dm644 /dev/stdin "$pkgdir/usr/share/fish/vendor_completions.d/glori.fish"
+}

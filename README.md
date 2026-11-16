@@ -11,6 +11,16 @@ glori list
 glori remove tool
 ```
 
+## Install
+
+```
+curl -fsSL https://raw.githubusercontent.com/pozii/glori/main/install.sh | sh
+```
+
+This puts a static `glori` binary in `~/.local/bin` after checking its SHA-256. `.deb` and `.rpm` packages for x86_64 and aarch64 are attached to every [release](https://github.com/pozii/glori/releases), and `packaging/arch/PKGBUILD` builds the Arch package.
+
+Update with `glori self-update` (or `glori self-update --check` to only look). If Glori came from a `.deb`, `.rpm` or Arch package, update it with the package manager instead.
+
 ## Why
 
 Downloaded Linux software comes in many shapes: `.deb`, `.rpm`, `.tar.gz`, AppImage. Each one needs a different tool, different steps and different cleanup. Glori turns that into one command.
@@ -26,7 +36,7 @@ Downloaded Linux software comes in many shapes: `.deb`, `.rpm`, `.tar.gz`, AppIm
 
 ## Status
 
-Early development, no release yet. Working today:
+Early development, the first release is not out yet. Working today:
 
 - `glori install` for packages that belong to your distribution (`.deb` on Debian-based systems, `.rpm` on Fedora and openSUSE, Arch packages on Arch), with RPM signature checks
 - installing straight from an `http(s)` URL (needs `curl`), with the `.sha256` and signature files next to it used automatically
@@ -45,6 +55,7 @@ Not done yet: installing a package from another distribution family (for example
 |---|---|
 | `glori install <file or URL>` | Install a package, archive or AppImage from a path or an http(s) URL (`--dry-run`, `--yes`, `--name <name>`, `--sha256 <hash>`, `--install-deps`, `--allow-untrusted`) |
 | `glori remove <name>` | Remove something Glori installed (`--dry-run`, `--yes`) |
+| `glori self-update` | Update Glori from the latest release (`--check`, `--yes`) |
 | `glori list` | List what Glori installed |
 | `glori info <file>` | Show format, distribution, verification result and the install plan (`--sha256 <hash>`) |
 | `glori doctor` | Check the system and required tools |
