@@ -19,6 +19,7 @@ pub mod remove;
 pub mod runner;
 pub mod step;
 pub mod tools;
+pub mod update;
 pub mod verify;
 mod zstd_frames;
 

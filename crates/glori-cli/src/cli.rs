@@ -88,6 +88,19 @@ pub enum Command {
     #[command(about = "List what Glori installed")]
     List,
 
+    #[command(
+        name = "self-update",
+        about = "Update Glori to the latest release",
+        after_help = "Examples:\n  glori self-update --check\n  glori self-update --yes\n\nNot available when Glori was installed by your package manager; use the package manager then."
+    )]
+    SelfUpdate {
+        #[arg(long, help = "Only report whether a newer release exists")]
+        check: bool,
+
+        #[arg(short, long, help = "Do not ask for confirmation")]
+        yes: bool,
+    },
+
     #[command(about = "Check the system and the tools Glori relies on")]
     Doctor,
 

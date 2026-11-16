@@ -5,6 +5,9 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
 
 [[bin]]
 name = "glori"
@@ -18,9 +21,38 @@ glori-core = { version = "0.1.0", path = "../glori-core" }
 owo-colors = { version = "4.4.0", features = ["supports-colors"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
+tempfile = "3.27.0"
 
 [dev-dependencies]
 glori-core = { version = "0.1.0", path = "../glori-core", features = ["testing"] }
 flate2 = "1.1.11"
 tar = "0.4.46"
-tempfile = "3.27.0"
+
+[package.metadata.deb]
+name = "glori"
+maintainer = "pozii <pozii@users.noreply.github.com>"
+section = "utils"
+priority = "optional"
+extended-description = "Glori installs .deb, .rpm, tarballs and AppImages the same way on every Linux distribution, shows the plan first and records everything it installs so it can be removed cleanly."
+depends = "$auto"
+suggests = "curl, gnupg"
+assets = [
+    ["target/release/glori", "usr/bin/glori", "755"],
+    ["../../dist/completions/glori.bash", "usr/share/bash-completion/completions/glori", "644"],
+    ["../../dist/completions/_glori", "usr/share/zsh/vendor-completions/_glori", "644"],
+    ["../../dist/completions/glori.fish", "usr/share/fish/vendor_completions.d/glori.fish", "644"],
+    ["../../README.md", "usr/share/doc/glori/README.md", "644"],
+    ["../../LICENSE", "usr/share/doc/glori/copyright", "644"],
+]
+
+[package.metadata.generate-rpm]
+name = "glori"
+summary = "Install software the same way on every Linux distribution"
+assets = [
+    { source = "target/release/glori", dest = "/usr/bin/glori", mode = "755" },
+    { source = "dist/completions/glori.bash", dest = "/usr/share/bash-completion/completions/glori", mode = "644" },
+    { source = "dist/completions/_glori", dest = "/usr/share/zsh/site-functions/_glori", mode = "644" },
+    { source = "dist/completions/glori.fish", dest = "/usr/share/fish/vendor_completions.d/glori.fish", mode = "644" },
+    { source = "README.md", dest = "/usr/share/doc/glori/README.md", mode = "644", doc = true },
+    { source = "LICENSE", dest = "/usr/share/licenses/glori/LICENSE", mode = "644", license = true },
+]

@@ -1,6 +1,6 @@
 use std::{
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::{Command, Output, Stdio},
 };
 
 use tempfile::TempDir;
@@ -101,7 +101,7 @@ fn sibling_url(url: &str, name: &str) -> Result<String> {
     Ok(format!("{prefix}/{name}"))
 }
 
-fn curl(url: &str, target: &Path, progress: Progress, max_bytes: Option<&str>) -> Result<()> {
+fn command(url: &str) -> Result<Command> {
     let curl = tools::find("curl").ok_or_else(|| Error::Download {
         url: url.to_string(),
         reason: "curl was not found; install it to download from URLs".to_string(),
@@ -111,26 +111,21 @@ fn curl(url: &str, target: &Path, progress: Progress, max_bytes: Option<&str>) -
         .args(["--fail", "--location", "--max-redirs", "10"])
         .args(["--connect-timeout", "30"])
         .args(["--proto", "=http,https", "--proto-redir", "=http,https"])
-        .arg("--output")
-        .arg(target)
         .stdin(Stdio::null());
-    match progress {
-        Progress::Show => command.arg("--progress-bar"),
-        Progress::Hide => command.args(["--silent", "--show-error"]),
-    };
-    if let Some(max_bytes) = max_bytes {
-        command.args(["--max-filesize", max_bytes]);
-    }
-    command.arg("--").arg(url);
-    if progress == Progress::Hide {
-        command.stderr(Stdio::piped());
-    }
-    let output = command.output().map_err(|source| Error::Spawn {
-        command: "curl".to_string(),
-        source,
-    })?;
+    Ok(command)
+}
+
+fn run(mut command: Command, url: &str) -> Result<Output> {
+    let output = command
+        .arg("--")
+        .arg(url)
+        .output()
+        .map_err(|source| Error::Spawn {
+            command: "curl".to_string(),
+            source,
+        })?;
     if output.status.success() {
-        return Ok(());
+        return Ok(output);
     }
     let reason = String::from_utf8_lossy(&output.stderr).trim().to_string();
     Err(Error::Download {
@@ -141,6 +136,31 @@ fn curl(url: &str, target: &Path, progress: Progress, max_bytes: Option<&str>) -
             reason
         },
     })
+}
+
+fn curl(url: &str, target: &Path, progress: Progress, max_bytes: Option<&str>) -> Result<()> {
+    let mut command = command(url)?;
+    command.arg("--output").arg(target);
+    match progress {
+        Progress::Show => command.arg("--progress-bar").stderr(Stdio::inherit()),
+        Progress::Hide => command
+            .args(["--silent", "--show-error"])
+            .stderr(Stdio::piped()),
+    };
+    if let Some(max_bytes) = max_bytes {
+        command.args(["--max-filesize", max_bytes]);
+    }
+    run(command, url).map(drop)
+}
+
+pub fn get(url: &str, max_bytes: u64) -> Result<Vec<u8>> {
+    let mut command = command(url)?;
+    command
+        .args(["--silent", "--show-error"])
+        .args(["--max-filesize", &max_bytes.to_string()])
+        .args(["--header", "Accept: application/vnd.github+json"])
+        .stderr(Stdio::piped());
+    run(command, url).map(|output| output.stdout)
 }
 
 fn percent_decode(text: &str) -> String {

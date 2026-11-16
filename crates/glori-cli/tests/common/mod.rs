@@ -1,10 +1,13 @@
 #![allow(dead_code)]
 
 use std::{
+    collections::HashMap,
     fs,
-    io::Write,
+    io::{BufRead, BufReader, Write},
+    net::TcpListener,
     path::{Path, PathBuf},
     process::{Command, Output, Stdio},
+    thread,
 };
 
 use tempfile::TempDir;
@@ -143,4 +146,70 @@ pub fn appimage_bytes() -> Vec<u8> {
     bytes.extend_from_slice(&[2, 1, 1, 0, b'A', b'I', 2, 0]);
     bytes.extend_from_slice(b"#!/bin/sh\necho appimage-ok\n");
     bytes
+}
+
+pub struct Server {
+    base: String,
+}
+
+impl Server {
+    pub fn start(files: Vec<(&str, Vec<u8>)>) -> Self {
+        Self::start_with(|_| {
+            files
+                .into_iter()
+                .map(|(path, body)| (path.to_string(), body))
+                .collect()
+        })
+    }
+
+    pub fn start_with(build: impl FnOnce(&str) -> Vec<(String, Vec<u8>)>) -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let files: HashMap<String, Vec<u8>> = build(&base).into_iter().collect();
+        thread::spawn(move || {
+            for stream in listener.incoming().flatten() {
+                let mut reader = BufReader::new(stream);
+                let mut request = String::new();
+                if reader.read_line(&mut request).is_err() {
+                    continue;
+                }
+                let path = request.split_whitespace().nth(1).unwrap_or("/").to_string();
+                let mut stream = reader.into_inner();
+                let _ = match files.get(&path) {
+                    Some(body) => {
+                        let head = format!(
+                            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                            body.len()
+                        );
+                        stream
+                            .write_all(head.as_bytes())
+                            .and_then(|()| stream.write_all(body))
+                    }
+                    None => stream.write_all(
+                        b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                    ),
+                };
+            }
+        });
+        Server { base }
+    }
+
+    pub fn url(&self, path: &str) -> String {
+        format!("{}{path}", self.base)
+    }
+}
+
+pub fn sha256_hex(bytes: &[u8]) -> String {
+    let mut child = Command::new("sha256sum")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child.stdin.take().unwrap().write_all(bytes).unwrap();
+    let output = child.wait_with_output().unwrap();
+    String::from_utf8_lossy(&output.stdout)
+        .split_whitespace()
+        .next()
+        .unwrap()
+        .to_string()
 }

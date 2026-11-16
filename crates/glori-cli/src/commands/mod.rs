@@ -6,6 +6,7 @@ mod install;
 mod libraries;
 mod list;
 mod remove;
+mod self_update;
 mod source;
 
 use std::process::ExitCode;
@@ -46,6 +47,12 @@ pub fn run(cli: Cli) -> anyhow::Result<ExitCode> {
                 json: cli.json,
             },
         )
+        .map(|()| ExitCode::SUCCESS),
+        Command::SelfUpdate { check, yes } => self_update::run(self_update::Options {
+            check,
+            yes,
+            json: cli.json,
+        })
         .map(|()| ExitCode::SUCCESS),
         Command::List => list::run(cli.json).map(|()| ExitCode::SUCCESS),
         Command::Doctor => doctor::run(cli.json),

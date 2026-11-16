@@ -50,6 +50,8 @@ pub enum Error {
     NoFileName(String),
     #[error("download of {url} failed: {reason}")]
     Download { url: String, reason: String },
+    #[error("{0}")]
+    Update(String),
     #[error("the registry at {path} is corrupted: {message}")]
     Registry { path: PathBuf, message: String },
 }
