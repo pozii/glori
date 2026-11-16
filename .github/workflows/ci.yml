@@ -5,11 +5,22 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUSTFLAGS: -D warnings
+  RUSTDOCFLAGS: -D warnings
 
 jobs:
-  check:
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,6 +28,86 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
-      - run: cargo fmt --check
-      - run: cargo clippy --all-targets -- -D warnings
-      - run: cargo test
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo doc --workspace --no-deps --locked
+
+  msrv:
+    name: MSRV 1.85
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.85
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check --workspace --all-targets --locked
+
+  deny:
+    name: Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+
+  test:
+    name: Test on ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    container: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Debian
+            image: debian:stable
+            family: debian
+            setup: apt-get update && apt-get install -y build-essential curl git ca-certificates
+          - name: Ubuntu
+            image: ubuntu:latest
+            family: debian
+            setup: apt-get update && apt-get install -y build-essential curl git ca-certificates
+          - name: Fedora
+            image: fedora:latest
+            family: fedora
+            setup: dnf install -y gcc curl git
+          - name: Arch
+            image: archlinux:latest
+            family: arch
+            setup: pacman -Syu --noconfirm base-devel curl git
+          - name: openSUSE
+            image: opensuse/tumbleweed:latest
+            family: suse
+            setup: zypper --non-interactive install gcc curl git tar gzip
+    steps:
+      - run: ${{ matrix.setup }}
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - run: cargo test --workspace --locked
+      - name: Detect the distribution family
+        run: |
+          cargo run --locked -q -- doctor --json > doctor.json
+          cat doctor.json
+          grep -q '"family": "${{ matrix.family }}"' doctor.json
+
+  build:
+    name: Release build (musl)
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl
+      - uses: Swatinem/rust-cache@v2
+      - run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - run: cargo build --release --locked --target x86_64-unknown-linux-musl -p glori-cli
+      - name: Check the binary is static and runs
+        run: |
+          file target/x86_64-unknown-linux-musl/release/glori
+          target/x86_64-unknown-linux-musl/release/glori --version
+      - uses: actions/upload-artifact@v4
+        with:
+          name: glori-x86_64-linux-musl
+          path: target/x86_64-unknown-linux-musl/release/glori
+          if-no-files-found: error

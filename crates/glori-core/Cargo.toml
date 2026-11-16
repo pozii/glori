@@ -4,6 +4,7 @@ description = "Core library of Glori: format and distribution detection, install
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+rust-version.workspace = true
 
 [dependencies]
 serde = { version = "1.0.229", features = ["derive"] }

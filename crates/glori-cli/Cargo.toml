@@ -4,6 +4,7 @@ description = "Install software the same way on every Linux distribution"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+rust-version.workspace = true
 
 [[bin]]
 name = "glori"
