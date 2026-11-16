@@ -5,6 +5,7 @@ Install software the same way on every Linux distribution.
 ```
 glori install ./app.rpm
 glori install ./tool-1.2-linux-x64.tar.gz
+glori install https://example.com/tool-1.2-linux-x64.tar.gz
 glori install ./App.AppImage
 glori list
 glori remove tool
@@ -28,6 +29,7 @@ Downloaded Linux software comes in many shapes: `.deb`, `.rpm`, `.tar.gz`, AppIm
 Early development, no release yet. Working today:
 
 - `glori install` for packages that belong to your distribution (`.deb` on Debian-based systems, `.rpm` on Fedora and openSUSE, Arch packages on Arch), with RPM signature checks
+- installing straight from an `http(s)` URL (needs `curl`), with the `.sha256` and signature files next to it used automatically
 - `glori install` for tarballs (`.tar.gz`, `.tar.xz`, `.tar.zst`, `.tar.bz2`) and AppImages, entirely in your home directory, no root needed
 - SHA-256 and GPG verification of downloads
 - man pages and bash/fish completions shipped in a tarball are linked into your home directory
@@ -41,7 +43,7 @@ Not done yet: installing a package from another distribution family (for example
 
 | Command | Purpose |
 |---|---|
-| `glori install <file>` | Install a package, archive or AppImage (`--dry-run`, `--yes`, `--name <name>`, `--sha256 <hash>`, `--install-deps`, `--allow-untrusted`) |
+| `glori install <file or URL>` | Install a package, archive or AppImage from a path or an http(s) URL (`--dry-run`, `--yes`, `--name <name>`, `--sha256 <hash>`, `--install-deps`, `--allow-untrusted`) |
 | `glori remove <name>` | Remove something Glori installed (`--dry-run`, `--yes`) |
 | `glori list` | List what Glori installed |
 | `glori info <file>` | Show format, distribution, verification result and the install plan (`--sha256 <hash>`) |
