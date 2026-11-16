@@ -275,3 +275,55 @@ fn a_dangling_bin_symlink_blocks_the_install_too() {
     let file = sandbox.download(CLI_TOOL, &cli_tool());
     assert!(!sandbox.install(&file, &[]).status.success());
 }
+
+#[test]
+fn man_pages_and_completions_are_linked_and_removed_with_the_app() {
+    let sandbox = Sandbox::new();
+    let archive = tarball(|b| {
+        add_dir(b, "rg-1.0/");
+        add_file(b, "rg-1.0/rg", b"#!/bin/sh\n", 0o755);
+        add_file(b, "rg-1.0/doc/rg.1", b".TH RG 1", 0o644);
+        add_file(b, "rg-1.0/complete/rg.bash", b"complete -F _rg rg", 0o644);
+        add_file(b, "rg-1.0/complete/rg.fish", b"complete -c rg", 0o644);
+        add_file(b, "rg-1.0/complete/_rg", b"#compdef rg", 0o644);
+    });
+    let file = sandbox.download(CLI_TOOL, &archive);
+    let share = sandbox.home.path().join(".local/share");
+
+    let installed = sandbox.install(&file, &[]);
+    assert!(installed.status.success(), "{}", stderr(&installed));
+    let man = share.join("man/man1/rg.1");
+    assert_eq!(fs::read(&man).unwrap(), b".TH RG 1");
+    assert_eq!(
+        fs::read_link(&man).unwrap(),
+        sandbox.opt("rg").join("doc/rg.1")
+    );
+    assert!(share.join("bash-completion/completions/rg").exists());
+    assert!(share.join("fish/completions/rg.fish").exists());
+
+    let removed = sandbox.glori(&["remove", "rg", "--yes"]);
+    assert!(removed.status.success(), "{}", stderr(&removed));
+    assert!(fs::symlink_metadata(&man).is_err());
+    assert!(!share.join("bash-completion/completions/rg").exists());
+    assert!(!share.join("fish/completions/rg.fish").exists());
+}
+
+#[test]
+fn an_existing_man_page_is_left_alone_instead_of_blocking_the_install() {
+    let sandbox = Sandbox::new();
+    let existing = sandbox.home.path().join(".local/share/man/man1");
+    fs::create_dir_all(&existing).unwrap();
+    fs::write(existing.join("rg.1"), b"mine").unwrap();
+    let archive = tarball(|b| {
+        add_dir(b, "rg-1.0/");
+        add_file(b, "rg-1.0/rg", b"#!/bin/sh\n", 0o755);
+        add_file(b, "rg-1.0/doc/rg.1", b"theirs", 0o644);
+    });
+    let file = sandbox.download(CLI_TOOL, &archive);
+    let installed = sandbox.install(&file, &[]);
+    assert!(installed.status.success(), "{}", stderr(&installed));
+    assert_eq!(fs::read(existing.join("rg.1")).unwrap(), b"mine");
+    let removed = sandbox.glori(&["remove", "rg", "--yes"]);
+    assert!(removed.status.success());
+    assert_eq!(fs::read(existing.join("rg.1")).unwrap(), b"mine");
+}

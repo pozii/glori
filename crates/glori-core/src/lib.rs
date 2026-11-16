@@ -3,6 +3,7 @@ pub mod desktop;
 pub mod distro;
 pub mod doctor;
 pub mod error;
+pub mod extras;
 pub mod format;
 pub mod fsops;
 pub mod installer;

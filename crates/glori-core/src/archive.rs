@@ -8,6 +8,7 @@ use tar::EntryType;
 
 use crate::{
     error::{Error, Result},
+    extras::{self, Extra},
     format::Format,
     libs::{self, Binary, FileIndex},
     zstd_frames::ZstdFrames,
@@ -38,6 +39,7 @@ pub struct Layout {
     pub root_executables: Vec<PathBuf>,
     pub icon: Option<PathBuf>,
     pub has_desktop_file: bool,
+    pub extras: Vec<Extra>,
 }
 
 #[derive(Debug, Clone)]
@@ -171,6 +173,12 @@ pub fn layout_of(members: &[Member]) -> Layout {
             layout.bin_executables.push(parts.iter().collect());
         } else if executable && parts.len() == 1 && !looks_like_library(file_name) {
             layout.root_executables.push(parts.iter().collect());
+        }
+        if let Some(kind) = extras::classify(&parts) {
+            layout.extras.push(Extra {
+                kind,
+                path: parts.iter().collect(),
+            });
         }
         if file_name.ends_with(".desktop") {
             layout.has_desktop_file = true;

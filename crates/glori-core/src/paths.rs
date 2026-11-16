@@ -45,6 +45,18 @@ impl Paths {
         self.data_home.join("applications")
     }
 
+    pub fn man_dir(&self, section: u8) -> PathBuf {
+        self.data_home.join(format!("man/man{section}"))
+    }
+
+    pub fn bash_completion_dir(&self) -> PathBuf {
+        self.data_home.join("bash-completion/completions")
+    }
+
+    pub fn fish_completion_dir(&self) -> PathBuf {
+        self.data_home.join("fish/completions")
+    }
+
     pub fn registry_file(&self) -> PathBuf {
         self.data_home.join("glori/registry.json")
     }
@@ -58,9 +70,16 @@ impl Paths {
     }
 
     pub fn manages(&self, path: &Path) -> bool {
-        [self.opt_dir(), self.bin_dir(), self.applications_dir()]
-            .iter()
-            .any(|root| path.starts_with(root) && path != root)
+        [
+            self.opt_dir(),
+            self.bin_dir(),
+            self.applications_dir(),
+            self.data_home.join("man"),
+            self.data_home.join("bash-completion"),
+            self.data_home.join("fish"),
+        ]
+        .iter()
+        .any(|root| path.starts_with(root) && path != root)
     }
 }
 

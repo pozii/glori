@@ -52,6 +52,19 @@ impl Installer for Tarball {
             )?);
             files.push(paths.desktop_file(&identity.name));
         }
+        for extra in &layout.extras {
+            let Some(link) = extra.destination(paths) else {
+                continue;
+            };
+            if common::absent(&link).is_err() || files.contains(&link) {
+                continue;
+            }
+            operations.push(Operation::Link {
+                target: dest.join(&extra.path),
+                link: link.clone(),
+            });
+            files.push(link);
+        }
         operations.push(common::register(
             &identity,
             Kind::Archive,

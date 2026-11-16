@@ -30,6 +30,7 @@ Early development, no release yet. Working today:
 - `glori install` for packages that belong to your distribution (`.deb` on Debian-based systems, `.rpm` on Fedora and openSUSE, Arch packages on Arch), with RPM signature checks
 - `glori install` for tarballs (`.tar.gz`, `.tar.xz`, `.tar.zst`, `.tar.bz2`) and AppImages, entirely in your home directory, no root needed
 - SHA-256 and GPG verification of downloads
+- man pages and bash/fish completions shipped in a tarball are linked into your home directory
 - detection of missing system libraries before a tarball is installed, with the package that provides each one
 - `glori list` and `glori remove` for everything installed that way
 - `glori info`, `glori doctor` and shell completions
@@ -58,6 +59,8 @@ Tarballs and AppImages are installed per user:
 | Application files | `~/.local/opt/<name>/` |
 | Commands | symlinks in `~/.local/bin/` |
 | Menu entry (graphical apps) | `~/.local/share/applications/<name>.desktop` |
+| Man pages | links in `~/.local/share/man/man<N>/` |
+| Shell completions | links in `~/.local/share/bash-completion/completions/` and `~/.local/share/fish/completions/` |
 | Glori's record of what it installed | `~/.local/share/glori/registry.json` |
 
 The name and version come from the file name (`ripgrep-15.2.0-x86_64-unknown-linux-musl.tar.gz` becomes `ripgrep` 15.2.0); use `--name` to choose another. A tarball gets a menu entry only if it ships an icon or a `.desktop` file, so command line tools do not clutter your menu. Make sure `~/.local/bin` is in your `PATH`.
