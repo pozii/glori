@@ -1,0 +1,19 @@
+[package]
+name = "glori-cli"
+description = "Install software the same way on every Linux distribution"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "glori"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0.104"
+clap = { version = "4.6.7", features = ["derive"] }
+clap_complete = "4.6.11"
+glori-core = { version = "0.1.0", path = "../glori-core" }
+owo-colors = { version = "4.4.0", features = ["supports-colors"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"

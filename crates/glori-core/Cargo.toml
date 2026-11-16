@@ -1,0 +1,10 @@
+[package]
+name = "glori-core"
+description = "Core library of Glori: format and distribution detection, install planning"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+thiserror = "2.0.21"
