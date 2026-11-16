@@ -23,6 +23,11 @@ pub mod update;
 pub mod verify;
 mod zstd_frames;
 
+pub const VERSION: &str = match option_env!("GLORI_VERSION") {
+    Some(version) => version,
+    None => "0.0.0",
+};
+
 pub use distro::{Distro, Family, PackageManager};
 pub use error::{Error, Result};
 pub use format::Format;

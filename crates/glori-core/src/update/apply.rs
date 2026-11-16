@@ -3,7 +3,9 @@ use std::{
     io::{self, Read},
     os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Output},
+    thread,
+    time::Duration,
 };
 
 use crate::{
@@ -79,9 +81,7 @@ fn stage(staged: &Path, new_binary: &Path, expected_version: &str) -> Result<()>
 }
 
 fn check_runs(binary: &Path, expected_version: &str) -> Result<()> {
-    let output = Command::new(binary)
-        .arg("--version")
-        .output()
+    let output = run_version(binary)
         .map_err(|error| Error::Update(format!("the downloaded binary does not run: {error}")))?;
     let printed = String::from_utf8_lossy(&output.stdout);
     if output.status.success() && printed.contains(expected_version) {
@@ -90,6 +90,19 @@ fn check_runs(binary: &Path, expected_version: &str) -> Result<()> {
     Err(Error::Update(format!(
         "the downloaded binary did not report version {expected_version}; the update was not applied"
     )))
+}
+
+fn run_version(binary: &Path) -> io::Result<Output> {
+    let mut attempts = 0;
+    loop {
+        match Command::new(binary).arg("--version").output() {
+            Err(error) if error.kind() == io::ErrorKind::ExecutableFileBusy && attempts < 50 => {
+                attempts += 1;
+                thread::sleep(Duration::from_millis(20));
+            }
+            result => return result,
+        }
+    }
 }
 
 fn staging_path(exe: &Path) -> Result<PathBuf> {

@@ -3,12 +3,11 @@ resolver = "3"
 members = ["crates/*"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.0.0"
 edition = "2024"
 rust-version = "1.87"
 license = "Apache-2.0"
 repository = "https://github.com/pozii/glori"
-homepage = "https://github.com/pozii/glori"
 
 [profile.release]
 lto = true

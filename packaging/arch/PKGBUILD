@@ -1,5 +1,5 @@
 pkgname=glori
-pkgver=0.1.0
+pkgver=2026.11.17
 pkgrel=1
 pkgdesc="Install software the same way on every Linux distribution"
 arch=('x86_64' 'aarch64')
@@ -9,6 +9,7 @@ depends=('gcc-libs')
 makedepends=('cargo')
 optdepends=('curl: install and update from URLs' 'gnupg: verify detached signatures')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+export GLORI_VERSION="$pkgver"
 sha256sums=('SKIP')
 
 prepare() {

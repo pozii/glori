@@ -2,9 +2,12 @@ mod common;
 
 use std::{
     fs,
+    io::ErrorKind,
     os::unix::fs::PermissionsExt,
     path::PathBuf,
     process::{Command, Output, Stdio},
+    thread,
+    time::Duration,
 };
 
 use common::*;
@@ -97,14 +100,22 @@ impl Installed {
     }
 
     fn run(&self, server: &Server, args: &[&str]) -> Output {
-        Command::new(self.exe())
-            .args(args)
-            .env("HOME", self.dir.path())
-            .env("GLORI_UPDATE_URL", server.url("/latest"))
-            .env("NO_COLOR", "1")
-            .stdin(Stdio::null())
-            .output()
-            .unwrap()
+        for _ in 0..50 {
+            let result = Command::new(self.exe())
+                .args(args)
+                .env("HOME", self.dir.path())
+                .env("GLORI_UPDATE_URL", server.url("/latest"))
+                .env("NO_COLOR", "1")
+                .stdin(Stdio::null())
+                .output();
+            match result {
+                Err(error) if error.kind() == ErrorKind::ExecutableFileBusy => {
+                    thread::sleep(Duration::from_millis(20))
+                }
+                other => return other.unwrap(),
+            }
+        }
+        panic!("the copied binary stayed busy");
     }
 
     fn bytes(&self) -> Vec<u8> {
@@ -141,7 +152,7 @@ fn check_in_plain_text_points_to_the_update_command() {
 #[test]
 fn an_older_or_equal_release_means_up_to_date() {
     let installed = Installed::new();
-    let server = Release::new("0.0.1").serve();
+    let server = Release::new("0.0.0").serve();
     let output = installed.run(&server, &["self-update", "--yes"]);
     assert!(output.status.success());
     assert!(stdout(&output).contains("up to date"));

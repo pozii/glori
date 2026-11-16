@@ -6,6 +6,7 @@ use clap_complete::Shell;
     name = "glori",
     version,
     about = "Install software the same way on every Linux distribution",
+    version = glori_core::VERSION,
     propagate_version = true,
     arg_required_else_help = true
 )]

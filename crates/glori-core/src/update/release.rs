@@ -110,6 +110,14 @@ mod tests {
     }
 
     #[test]
+    fn zero_padded_calendar_tags_keep_their_spelling_in_asset_names() {
+        let json = r#"{"tag_name":"v2026.01.05.1","assets":[
+            {"name":"glori-2026.01.05.1-x86_64-unknown-linux-musl.tar.gz","browser_download_url":"https://h/a"}]}"#;
+        let release = Release::parse(json.as_bytes()).unwrap();
+        assert_eq!(release.asset_for("x86_64").unwrap().url, "https://h/a");
+    }
+
+    #[test]
     fn garbage_is_rejected() {
         assert!(Release::parse(b"<html>").is_err());
         assert!(Release::parse(br#"{"tag_name":"nightly"}"#).is_err());

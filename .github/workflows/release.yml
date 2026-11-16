@@ -16,16 +16,19 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      package_version: ${{ steps.version.outputs.package_version }}
     steps:
       - uses: actions/checkout@v4
       - id: version
         run: |
-          version=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
-          if [ "v$version" != "${GITHUB_REF_NAME}" ]; then
-            echo "tag ${GITHUB_REF_NAME} does not match the crate version $version" >&2
+          tag="${GITHUB_REF_NAME}"
+          if ! echo "$tag" | grep -Eq '^v[0-9]{4}\.(0[1-9]|1[0-2])\.(0[1-9]|[12][0-9]|3[01])(\.[1-9][0-9]*)?(-[0-9A-Za-z.]+)?$'; then
+            echo "tag $tag is not a calendar version (vYYYY.MM.DD, vYYYY.MM.DD.N, optional -rc.N)" >&2
             exit 1
           fi
+          version="${tag#v}"
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "package_version=${version//-/\~}" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build ${{ matrix.target }}
@@ -53,23 +56,26 @@ jobs:
           tool: cargo-deb,cargo-generate-rpm
       - run: cargo test --workspace --locked
       - run: cargo build --release --locked --target ${{ matrix.target }} -p glori-cli
+        env:
+          GLORI_VERSION: ${{ needs.check.outputs.version }}
       - name: Check the binary
         run: |
           binary=target/${{ matrix.target }}/release/glori
           file "$binary"
-          "$binary" --version | grep -q "${{ needs.check.outputs.version }}"
+          test "$("$binary" --version)" = "glori ${{ needs.check.outputs.version }}"
       - name: Package
         run: |
           version=${{ needs.check.outputs.version }}
+          package_version=${{ needs.check.outputs.package_version }}
           target=${{ matrix.target }}
           packaging/completions.sh target/$target/release/glori
           packaging/tarball.sh "$target" "$version"
-          cargo deb -p glori-cli --no-build --no-strip --target "$target"
-          cargo generate-rpm -p crates/glori-cli --target "$target"
+          cargo deb -p glori-cli --no-build --no-strip --target "$target" --deb-version "$package_version"
+          cargo generate-rpm -p crates/glori-cli --target "$target" --set-metadata "version = \"$package_version\""
           mkdir -p out
           cp dist/*.tar.gz out/
-          cp target/$target/debian/*.deb out/
-          cp target/$target/generate-rpm/*.rpm out/
+          find target -name "glori_*.deb" -exec cp {} out/ \;
+          find target -name "glori-*.rpm" -exec cp {} out/ \;
       - uses: actions/upload-artifact@v4
         with:
           name: release-${{ matrix.target }}
