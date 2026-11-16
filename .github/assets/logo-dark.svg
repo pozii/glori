@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="290" height="96" viewBox="0 0 290 96" role="img" aria-label="Glori">
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="5">
+    <rect x="10" y="10" width="76" height="76" rx="20" stroke="#8b5cf6"/>
+    <path d="M48 24v30" stroke="#f4f4f5"/>
+    <path d="M35 43l13 13 13-13" stroke="#f4f4f5"/>
+    <path d="M30 66h36" stroke="#8b5cf6"/>
+  </g>
+  <text x="104" y="64" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="52" font-weight="700" letter-spacing="-1" fill="#f4f4f5">glori</text>
+</svg>

@@ -1,8 +1,70 @@
-# Glori
+<p align="center">
+  <a href="https://github.com/pozii/glori">
+    <picture>
+      <source srcset=".github/assets/logo-dark.svg" media="(prefers-color-scheme: dark)">
+      <source srcset=".github/assets/logo-light.svg" media="(prefers-color-scheme: light)">
+      <img src=".github/assets/logo-light.svg" alt="Glori" height="96">
+    </picture>
+  </a>
+</p>
+<p align="center">Install software the same way on every Linux distribution.</p>
+<p align="center">
+  <a href="https://github.com/pozii/glori/releases"><img alt="Release" src="https://img.shields.io/github/v/release/pozii/glori?include_prereleases&style=flat-square" /></a>
+  <a href="https://github.com/pozii/glori/actions/workflows/ci.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/pozii/glori/ci.yml?style=flat-square&branch=main" /></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/pozii/glori?style=flat-square" /></a>
+  <img alt="Written in Rust" src="https://img.shields.io/badge/rust-1.87%2B-orange?style=flat-square" />
+</p>
 
-Install software the same way on every Linux distribution.
+```console
+$ glori install https://github.com/BurntSushi/ripgrep/releases/download/15.1.0/ripgrep-15.1.0-x86_64-unknown-linux-musl.tar.gz --dry-run
+File          /tmp/glori-download-0CrACa/ripgrep-15.1.0-x86_64-unknown-linux-musl.tar.gz
+Format        gzip tarball (.tar.gz)
+Distro        Fedora Linux 45 (Budgie) (Fedora family)
+Plan          extract and register in your user directory
+Verification  verified (sha256 matches ripgrep-15.1.0-x86_64-unknown-linux-musl.tar.gz.sha256)
 
+Steps
+  1. extract ... into ~/.local/opt/ripgrep
+  2. link ~/.local/bin/rg -> ~/.local/opt/ripgrep/rg
+  3. link ~/.local/share/man/man1/rg.1 -> ~/.local/opt/ripgrep/doc/rg.1
+  4. link ~/.local/share/fish/completions/rg.fish -> ~/.local/opt/ripgrep/complete/rg.fish
+  5. link ~/.local/share/bash-completion/completions/rg -> ~/.local/opt/ripgrep/complete/rg.bash
+  6. record ripgrep in the Glori registry
+
+Dry run: nothing was changed.
 ```
+
+---
+
+### Installation
+
+```bash
+# YOLO
+curl -fsSL https://raw.githubusercontent.com/pozii/glori/main/install.sh | sh
+
+# From source
+cargo install --git https://github.com/pozii/glori glori-cli
+```
+
+The script puts a static `glori` binary in `~/.local/bin` after checking its SHA-256. No root needed.
+
+Every [release](https://github.com/pozii/glori/releases) also ships distribution packages for x86_64 and aarch64:
+
+| Distribution | Package |
+| --- | --- |
+| Debian, Ubuntu and derivatives | `glori_<version>_<arch>.deb` |
+| Fedora, openSUSE and derivatives | `glori-<version>-1.<arch>.rpm` |
+| Arch Linux | [`packaging/arch/PKGBUILD`](packaging/arch/PKGBUILD) |
+| Anything else | `glori-<version>-<arch>-unknown-linux-musl.tar.gz` |
+
+> [!TIP]
+> Update with `glori self-update` (or `--check` to only look). If Glori came from a `.deb`, `.rpm` or Arch package, update it with the package manager instead.
+
+Releases use calendar versions: `2026.11.17`, and `2026.11.17.1` for a second release the same day. See [RELEASING.md](RELEASING.md).
+
+### Usage
+
+```bash
 glori install ./app.rpm
 glori install ./tool-1.2-linux-x64.tar.gz
 glori install https://example.com/tool-1.2-linux-x64.tar.gz
@@ -11,45 +73,38 @@ glori list
 glori remove tool
 ```
 
-## Install
+Every install shows its plan first, and `--dry-run` stops there.
 
-```
-curl -fsSL https://raw.githubusercontent.com/pozii/glori/main/install.sh | sh
-```
+### What it handles
 
-This puts a static `glori` binary in `~/.local/bin` after checking its SHA-256. `.deb` and `.rpm` packages for x86_64 and aarch64 are attached to every [release](https://github.com/pozii/glori/releases), and `packaging/arch/PKGBUILD` builds the Arch package.
+| Format | How it is installed | Root |
+| --- | --- | --- |
+| `.deb` | `apt-get` on Debian and derivatives | yes |
+| `.rpm` | `dnf` on Fedora, `zypper` on openSUSE, signatures checked with `rpm -K` | yes |
+| Arch package (`.pkg.tar.zst`) | `pacman` on Arch and derivatives | yes |
+| `.tar.gz`, `.tar.xz`, `.tar.zst`, `.tar.bz2` | extracted into `~/.local/opt`, commands linked into `~/.local/bin`, missing system libraries reported | no |
+| AppImage | copied into `~/.local/opt` with a menu entry | no |
 
-Update with `glori self-update` (or `glori self-update --check` to only look). If Glori came from a `.deb`, `.rpm` or Arch package, update it with the package manager instead.
+Installing a package from another distribution family (a `.deb` on Fedora) is planned, not done.
 
-## Why
+### Principles
 
-Downloaded Linux software comes in many shapes: `.deb`, `.rpm`, `.tar.gz`, AppImage. Each one needs a different tool, different steps and different cleanup. Glori turns that into one command.
-
-## Principles
-
-- **Universal** - format and distribution differences are not the user's problem.
+- **Universal** - format and distribution differences are not your problem.
 - **Transparent** - shows the plan first, then acts.
 - **Reversible** - records everything it installs and removes it cleanly.
 - **User-owned** - no root unless it is required.
 - **Complementary** - wraps `apt`, `dnf`, `pacman`; never replaces them.
-- **Extensible** - small core, community-driven formats, sources and recipes.
+- **Verified** - checks SHA-256 sums and GPG or RPM signatures before it installs.
 
-## Status
+### Status
 
-Early development, the first release is not out yet. Working today:
+Early development, the first release is not out yet. Working today: native installs, tarballs and AppImages, URL downloads, checksum and signature verification, missing library detection with `--install-deps`, `list`, `remove` and `self-update`.
 
-- `glori install` for packages that belong to your distribution (`.deb` on Debian-based systems, `.rpm` on Fedora and openSUSE, Arch packages on Arch), with RPM signature checks
-- installing straight from an `http(s)` URL (needs `curl`), with the `.sha256` and signature files next to it used automatically
-- `glori install` for tarballs (`.tar.gz`, `.tar.xz`, `.tar.zst`, `.tar.bz2`) and AppImages, entirely in your home directory, no root needed
-- SHA-256 and GPG verification of downloads
-- man pages and bash/fish completions shipped in a tarball are linked into your home directory
-- detection of missing system libraries before a tarball is installed, with the package that provides each one
-- `glori list` and `glori remove` for everything installed that way
-- `glori info`, `glori doctor` and shell completions
+Not done yet: cross-distribution conversion, AppImage icons, system-wide installs of tarballs, removing packages that were installed through the system package manager, and the GUI.
 
-Not done yet: installing a package from another distribution family (for example a `.deb` on Fedora), extracting icons from AppImages, system-wide installs, and removing packages that were installed through the system package manager.
+---
 
-## Commands
+### Commands
 
 | Command | Purpose |
 |---|---|
@@ -63,7 +118,7 @@ Not done yet: installing a package from another distribution family (for example
 
 Global flags: `--json` (for `info`, `doctor`, `list` and `--dry-run` plans) and `--no-color`.
 
-## Where things go
+### Where things go
 
 Tarballs and AppImages are installed per user:
 
@@ -78,7 +133,7 @@ Tarballs and AppImages are installed per user:
 
 The name and version come from the file name (`ripgrep-15.2.0-x86_64-unknown-linux-musl.tar.gz` becomes `ripgrep` 15.2.0); use `--name` to choose another. A tarball gets a menu entry only if it ships an icon or a `.desktop` file, so command line tools do not clutter your menu. Make sure `~/.local/bin` is in your `PATH`.
 
-## Safety
+### Safety
 
 - Glori never overwrites a file that already exists, and `remove` only deletes paths inside the directories above, even if the registry was edited by hand.
 - Archives with absolute paths, `..` components or symlinks that lead out of the install directory are rejected before anything is written.
@@ -86,7 +141,7 @@ The name and version come from the file name (`ripgrep-15.2.0-x86_64-unknown-lin
 - Downloads are checked when there is something to check them against (see below). A failed check blocks the install, and `--allow-untrusted` is needed to go ahead anyway.
 - Every command can show its plan first with `--dry-run`.
 
-## Missing system libraries
+### Missing system libraries
 
 A tarball often needs libraries that are not in the archive. Glori reads the dynamic dependencies of every program and library inside it before installing, and compares them with what is bundled in the archive and what your system has:
 
@@ -104,7 +159,7 @@ or run this command again with --install-deps.
 
 This check applies to tarballs. Native packages already have their dependencies resolved by the package manager, and AppImages bundle theirs.
 
-## Verifying downloads
+### Verifying downloads
 
 `glori info` and `glori install` look for evidence next to the file and show the result in the `Verification` row:
 
@@ -117,7 +172,7 @@ This check applies to tarballs. Native packages already have their dependencies 
 
 A checksum file served from the same place as the download proves the file arrived intact, not who published it; only a signature or a hash you obtained separately proves that. When there is nothing to check against, Glori says so and installs normally, since most downloads ship no checksum.
 
-## Architecture
+### Architecture
 
 Cargo workspace with a reusable core and thin frontends.
 
@@ -127,14 +182,14 @@ Cargo workspace with a reusable core and thin frontends.
 
 Installing is a list of operations: run a command, extract, copy, link, write a file, update the registry. An `Installer` turns a file into operations, the CLI shows them, and only then are they applied. Archive decoding uses pure Rust crates so the binary can be built fully static with musl.
 
-## Support
+### Support
 
 Glori is free and open source. If it saves you time, you can support its development on [Buy Me a Coffee](https://buymeacoffee.com/pozii).
 
-## Contributing
+### Contributing
 
 Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## License
+### License
 
 Apache License 2.0. See [LICENSE](LICENSE).
