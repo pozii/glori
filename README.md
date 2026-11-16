@@ -26,11 +26,15 @@ Downloaded Linux software comes in many shapes: `.deb`, `.rpm`, `.tar.gz`, AppIm
 
 Early development, no release yet. Working today: `glori info`, `glori doctor`, shell completions and `glori install` for packages that belong to your distribution (`.deb` on Debian-based systems, `.rpm` on Fedora and openSUSE, Arch packages on Arch). Tarballs, AppImages, cross-distribution conversion, `remove` and `list` are next.
 
+## Signatures
+
+Before installing an RPM, Glori verifies its signature with `rpm -K` and shows the result. A package whose signature fails is refused, and an unsigned package needs `--allow-untrusted` in non-interactive use. Other formats do not carry an embedded signature and are reported as not checkable for now.
+
 ## Planned commands
 
 | Command | Purpose |
 |---|---|
-| `glori install <file>` | Install a package (`--dry-run` shows the plan, `--yes` skips the prompt) |
+| `glori install <file>` | Install a package (`--dry-run` shows the plan, `--yes` skips the prompt, `--allow-untrusted` overrides signature checks) |
 | `glori remove <name>` | Remove an installed item |
 | `glori list` | List what Glori installed |
 | `glori info <file>` | Show format, distro and the install plan |

@@ -159,10 +159,24 @@ fn foreign_packages_are_refused_with_a_clear_message() {
 
 #[test]
 fn install_without_confirmation_stops_before_changing_anything() {
-    let file = fixture("confirm.rpm", RPM_HEADER);
-    let output = glori_on(FEDORA, &["install", file.to_str().unwrap()]);
+    let file = fixture("confirm.deb", DEB_HEADER);
+    let output = glori_on(DEBIAN, &["install", file.to_str().unwrap()]);
     assert!(!output.status.success());
     assert!(String::from_utf8_lossy(&output.stderr).contains("--yes"));
+}
+
+#[test]
+fn dry_run_json_reports_the_signature_state() {
+    let file = fixture("sig.deb", DEB_HEADER);
+    let plan = dry_run_plan(DEBIAN, &file);
+    assert_eq!(plan["signature"], "unverifiable");
+}
+
+#[test]
+fn info_shows_the_signature_row() {
+    let file = fixture("sig-info.deb", DEB_HEADER);
+    let output = glori_on(DEBIAN, &["info", file.to_str().unwrap()]);
+    assert!(stdout(&output).contains("Signature"));
 }
 
 #[test]

@@ -46,6 +46,12 @@ pub enum Command {
 
         #[arg(short, long, help = "Do not ask for confirmation")]
         yes: bool,
+
+        #[arg(
+            long,
+            help = "Install even if the signature is missing or fails verification"
+        )]
+        allow_untrusted: bool,
     },
 
     #[command(about = "Check the system and the tools Glori relies on")]

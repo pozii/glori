@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use glori_core::{Distro, Format, Strategy, distro, format, plan};
+use glori_core::{Distro, Format, Strategy, Trust, distro, format, plan, signature};
 use serde::Serialize;
 
 use crate::output;
@@ -11,6 +11,7 @@ pub struct Summary<'a> {
     pub format: Format,
     pub distro: Distro,
     pub strategy: Strategy,
+    pub signature: Trust,
 }
 
 impl<'a> Summary<'a> {
@@ -18,11 +19,13 @@ impl<'a> Summary<'a> {
         let format = format::detect(file)?;
         let distro = distro::detect()?;
         let strategy = plan::plan(format, &distro);
+        let signature = signature::check(format, file);
         Ok(Summary {
             file,
             format,
             distro,
             strategy,
+            signature,
         })
     }
 
@@ -39,9 +42,10 @@ impl<'a> Summary<'a> {
                 ),
             ),
             ("Plan", describe(self.strategy)),
+            ("Signature", paint(self.signature)),
         ];
         for (label, value) in rows {
-            println!("{} {value}", output::bold(&format!("{label:<8}")));
+            println!("{} {value}", output::bold(&format!("{label:<10}")));
         }
     }
 }
@@ -54,5 +58,14 @@ fn describe(strategy: Strategy) -> String {
         Strategy::Convert => output::yellow("not native to this distribution, conversion needed"),
         Strategy::Archive => output::green("extract and register in your user directory"),
         Strategy::AppImage => output::green("install as an AppImage with a menu entry"),
+    }
+}
+
+fn paint(trust: Trust) -> String {
+    match trust {
+        Trust::Verified => output::green(trust.label()),
+        Trust::Unsigned => output::yellow(trust.label()),
+        Trust::Invalid => output::red(trust.label()),
+        Trust::Unverifiable => output::dim(trust.label()),
     }
 }
