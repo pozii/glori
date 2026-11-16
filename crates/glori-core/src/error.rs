@@ -1,6 +1,7 @@
 use std::{
     io,
     path::{Path, PathBuf},
+    process::ExitStatus,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -15,6 +16,20 @@ pub enum Error {
     UnknownFormat(PathBuf),
     #[error("cannot detect the distribution: no os-release file found")]
     MissingOsRelease,
+    #[error("{0} is not supported yet")]
+    Unsupported(&'static str),
+    #[error("path is not valid UTF-8: {0}")]
+    NonUtf8Path(PathBuf),
+    #[error("this step needs root, but neither sudo nor pkexec was found")]
+    NoPrivilegeTool,
+    #[error("cannot start `{command}`: {source}")]
+    Spawn {
+        command: String,
+        #[source]
+        source: io::Error,
+    },
+    #[error("`{command}` failed ({status})")]
+    StepFailed { command: String, status: ExitStatus },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

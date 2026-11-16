@@ -1,10 +1,11 @@
-use std::{fs, path::Path};
+use std::{env, fs, path::PathBuf};
 
 use serde::Serialize;
 
 use crate::error::{Error, Result};
 
 const OS_RELEASE_PATHS: [&str; 2] = ["/etc/os-release", "/usr/lib/os-release"];
+pub const OS_RELEASE_OVERRIDE: &str = "GLORI_OS_RELEASE";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -66,13 +67,20 @@ impl PackageManager {
 }
 
 pub fn detect() -> Result<Distro> {
-    let path = OS_RELEASE_PATHS
-        .iter()
-        .map(Path::new)
-        .find(|path| path.exists())
-        .ok_or(Error::MissingOsRelease)?;
-    let content = fs::read_to_string(path).map_err(Error::io(path))?;
+    let path = os_release_path()?;
+    let content = fs::read_to_string(&path).map_err(Error::io(&path))?;
     Ok(parse(&content))
+}
+
+fn os_release_path() -> Result<PathBuf> {
+    if let Some(path) = env::var_os(OS_RELEASE_OVERRIDE) {
+        return Ok(PathBuf::from(path));
+    }
+    OS_RELEASE_PATHS
+        .iter()
+        .map(PathBuf::from)
+        .find(|path| path.exists())
+        .ok_or(Error::MissingOsRelease)
 }
 
 pub fn parse(content: &str) -> Distro {

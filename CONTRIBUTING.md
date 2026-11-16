@@ -27,6 +27,10 @@ cargo test
 - Keep code modular: one responsibility per module.
 - New formats, sources and distributions are added as new modules behind the existing traits, without changing the core.
 
+## Testing other distributions
+
+Set `GLORI_OS_RELEASE` to the path of an os-release file to make Glori behave as if it ran on that distribution. Use it together with `--dry-run`.
+
 ## Commits and PRs
 
 - Small, focused changes with a clear description.

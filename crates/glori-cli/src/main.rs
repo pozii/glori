@@ -1,6 +1,8 @@
 mod cli;
 mod commands;
 mod output;
+mod prompt;
+mod report;
 
 use std::process::ExitCode;
 

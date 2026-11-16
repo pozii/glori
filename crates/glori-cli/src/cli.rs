@@ -33,6 +33,21 @@ pub enum Command {
         file: PathBuf,
     },
 
+    #[command(
+        about = "Install a package from a local file",
+        after_help = "Examples:\n  glori install ./app.rpm\n  glori install ./app.deb --dry-run\n  glori install ./app.rpm --yes"
+    )]
+    Install {
+        #[arg(help = "Path to the package")]
+        file: PathBuf,
+
+        #[arg(long, help = "Show the plan without changing anything")]
+        dry_run: bool,
+
+        #[arg(short, long, help = "Do not ask for confirmation")]
+        yes: bool,
+    },
+
     #[command(about = "Check the system and the tools Glori relies on")]
     Doctor,
 
