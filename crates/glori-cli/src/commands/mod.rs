@@ -1,7 +1,10 @@
 mod completions;
 mod doctor;
+mod execute;
 mod info;
 mod install;
+mod list;
+mod remove;
 
 use std::process::ExitCode;
 
@@ -15,6 +18,7 @@ pub fn run(cli: Cli) -> anyhow::Result<ExitCode> {
             dry_run,
             yes,
             allow_untrusted,
+            name,
         } => install::run(
             &file,
             install::Options {
@@ -22,9 +26,20 @@ pub fn run(cli: Cli) -> anyhow::Result<ExitCode> {
                 yes,
                 allow_untrusted,
                 json: cli.json,
+                name,
             },
         )
         .map(|()| ExitCode::SUCCESS),
+        Command::Remove { name, dry_run, yes } => remove::run(
+            &name,
+            remove::Options {
+                dry_run,
+                yes,
+                json: cli.json,
+            },
+        )
+        .map(|()| ExitCode::SUCCESS),
+        Command::List => list::run(cli.json).map(|()| ExitCode::SUCCESS),
         Command::Doctor => doctor::run(cli.json),
         Command::Completions { shell } => {
             completions::run(shell);

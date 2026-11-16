@@ -34,8 +34,8 @@ pub enum Command {
     },
 
     #[command(
-        about = "Install a package from a local file",
-        after_help = "Examples:\n  glori install ./app.rpm\n  glori install ./app.deb --dry-run\n  glori install ./app.rpm --yes"
+        about = "Install a package, archive or AppImage from a local file",
+        after_help = "Examples:\n  glori install ./app.rpm\n  glori install ./tool-1.2.tar.gz --dry-run\n  glori install ./App.AppImage --name myapp --yes"
     )]
     Install {
         #[arg(help = "Path to the package")]
@@ -52,7 +52,31 @@ pub enum Command {
             help = "Install even if the signature is missing or fails verification"
         )]
         allow_untrusted: bool,
+
+        #[arg(
+            long,
+            help = "Name to install under instead of the one derived from the file"
+        )]
+        name: Option<String>,
     },
+
+    #[command(
+        about = "Remove something that Glori installed",
+        after_help = "Examples:\n  glori remove ripgrep\n  glori remove ripgrep --dry-run"
+    )]
+    Remove {
+        #[arg(help = "Name shown by `glori list`")]
+        name: String,
+
+        #[arg(long, help = "Show the plan without changing anything")]
+        dry_run: bool,
+
+        #[arg(short, long, help = "Do not ask for confirmation")]
+        yes: bool,
+    },
+
+    #[command(about = "List what Glori installed")]
+    List,
 
     #[command(about = "Check the system and the tools Glori relies on")]
     Doctor,

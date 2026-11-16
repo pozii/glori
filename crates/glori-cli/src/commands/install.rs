@@ -1,9 +1,14 @@
 use std::path::Path;
 
 use anyhow::bail;
-use glori_core::{Elevation, Step, Trust, installer, privilege, runner};
+use glori_core::{
+    Elevation, Operation, Paths, Trust,
+    installer::{self, Input},
+    privilege,
+};
 use serde::Serialize;
 
+use super::execute;
 use crate::{output, prompt, report::Summary};
 
 #[derive(Serialize)]
@@ -11,7 +16,7 @@ struct Plan<'a> {
     #[serde(flatten)]
     summary: &'a Summary<'a>,
     elevation: Option<Elevation>,
-    steps: &'a [Step],
+    operations: &'a [Operation],
 }
 
 pub struct Options {
@@ -19,6 +24,7 @@ pub struct Options {
     pub yes: bool,
     pub allow_untrusted: bool,
     pub json: bool,
+    pub name: Option<String>,
 }
 
 pub fn run(file: &Path, options: Options) -> anyhow::Result<()> {
@@ -27,32 +33,40 @@ pub fn run(file: &Path, options: Options) -> anyhow::Result<()> {
         yes,
         allow_untrusted,
         json,
+        name,
     } = options;
     if json && !dry_run {
         bail!("--json is only supported together with --dry-run");
     }
     let summary = Summary::detect(file)?;
-    let steps = installer::select(summary.strategy)?.steps(file)?;
+    let paths = Paths::from_env()?;
+    let input = Input {
+        file,
+        format: summary.format,
+        name: name.as_deref(),
+        paths: &paths,
+    };
+    let operations = installer::select(summary.strategy)?.plan(&input)?;
     let elevation = privilege::detect();
     if json {
         return output::json(&Plan {
             summary: &summary,
             elevation: elevation.as_ref().ok().copied(),
-            steps: &steps,
+            operations: &operations,
         });
     }
     summary.print();
-    print_steps(&steps, &elevation);
+    execute::print_operations(&operations, &elevation);
     if dry_run {
         println!("{}", output::dim("Dry run: nothing was changed."));
         return Ok(());
     }
     let question = trust_question(summary.signature, allow_untrusted, yes)?;
-    let elevation = needs_elevation(&steps, elevation)?;
+    let elevation = execute::needs_elevation(&operations, elevation)?;
     if !yes && !prompt::confirm(question)? {
         bail!("cancelled, nothing was changed");
     }
-    execute(&steps, elevation)
+    execute::execute(&operations, elevation, paths)
 }
 
 fn trust_question(trust: Trust, allow_untrusted: bool, yes: bool) -> anyhow::Result<&'static str> {
@@ -67,45 +81,6 @@ fn trust_question(trust: Trust, allow_untrusted: bool, yes: bool) -> anyhow::Res
         (Trust::Invalid | Trust::Unsigned, true, _) => Ok("The package is untrusted. Proceed?"),
         _ => Ok("Proceed?"),
     }
-}
-
-fn needs_elevation(
-    steps: &[Step],
-    detected: glori_core::Result<Elevation>,
-) -> anyhow::Result<Elevation> {
-    if steps.iter().any(|step| step.privileged) {
-        Ok(detected?)
-    } else {
-        Ok(detected.unwrap_or(Elevation::Direct))
-    }
-}
-
-fn print_steps(steps: &[Step], elevation: &glori_core::Result<Elevation>) {
-    println!("\n{}", output::bold("Steps"));
-    let shown = elevation.as_ref().ok().copied();
-    for (index, step) in steps.iter().enumerate() {
-        println!("  {}. {}", index + 1, step.command_line(shown));
-    }
-    if elevation.is_err() && steps.iter().any(|step| step.privileged) {
-        println!(
-            "{}",
-            output::yellow("  root is required but neither sudo nor pkexec was found")
-        );
-    }
-    println!();
-}
-
-fn execute(steps: &[Step], elevation: Elevation) -> anyhow::Result<()> {
-    for (index, step) in steps.iter().enumerate() {
-        println!(
-            "{} {}",
-            output::bold(&format!("[{}/{}]", index + 1, steps.len())),
-            step.command_line(Some(elevation))
-        );
-        runner::run(step, elevation)?;
-    }
-    println!("{}", output::green("Done."));
-    Ok(())
 }
 
 #[cfg(test)]

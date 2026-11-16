@@ -117,9 +117,9 @@ fn dry_run_on_fedora_plans_dnf_for_rpm() {
     let file = fixture("app.rpm", RPM_HEADER);
     let plan = dry_run_plan(FEDORA, &file);
     assert_eq!(plan["strategy"]["manager"], "dnf");
-    assert_eq!(plan["steps"][0]["program"], "dnf");
-    assert_eq!(plan["steps"][0]["privileged"], true);
-    let args = plan["steps"][0]["args"].as_array().unwrap();
+    assert_eq!(plan["operations"][0]["program"], "dnf");
+    assert_eq!(plan["operations"][0]["privileged"], true);
+    let args = plan["operations"][0]["args"].as_array().unwrap();
     assert_eq!(args[0], "install");
     assert!(args.last().unwrap().as_str().unwrap().ends_with("app.rpm"));
 }
@@ -128,15 +128,15 @@ fn dry_run_on_fedora_plans_dnf_for_rpm() {
 fn dry_run_on_debian_plans_apt_for_deb() {
     let file = fixture("app.deb", DEB_HEADER);
     let plan = dry_run_plan(DEBIAN, &file);
-    assert_eq!(plan["steps"][0]["program"], "apt-get");
+    assert_eq!(plan["operations"][0]["program"], "apt-get");
 }
 
 #[test]
 fn dry_run_on_arch_plans_pacman_for_arch_packages() {
     let file = fixture("app-1-1-x86_64.pkg.tar.zst", ZSTD_HEADER);
     let plan = dry_run_plan(ARCH, &file);
-    assert_eq!(plan["steps"][0]["program"], "pacman");
-    assert_eq!(plan["steps"][0]["args"][0], "-U");
+    assert_eq!(plan["operations"][0]["program"], "pacman");
+    assert_eq!(plan["operations"][0]["args"][0], "-U");
 }
 
 #[test]

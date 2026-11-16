@@ -1,15 +1,27 @@
+mod appimage;
+mod common;
 mod native;
+mod tarball;
 
 use std::path::Path;
 
 use crate::{
     error::{Error, Result},
+    format::Format,
+    operation::Operation,
+    paths::Paths,
     plan::Strategy,
-    step::Step,
 };
 
+pub struct Input<'a> {
+    pub file: &'a Path,
+    pub format: Format,
+    pub name: Option<&'a str>,
+    pub paths: &'a Paths,
+}
+
 pub trait Installer {
-    fn steps(&self, file: &Path) -> Result<Vec<Step>>;
+    fn plan(&self, input: &Input) -> Result<Vec<Operation>>;
 }
 
 pub fn select(strategy: Strategy) -> Result<Box<dyn Installer>> {
@@ -18,7 +30,7 @@ pub fn select(strategy: Strategy) -> Result<Box<dyn Installer>> {
         Strategy::Convert => Err(Error::Unsupported(
             "installing a package from another distribution family",
         )),
-        Strategy::Archive => Err(Error::Unsupported("installing tarball archives")),
-        Strategy::AppImage => Err(Error::Unsupported("installing AppImages")),
+        Strategy::Archive => Ok(Box::new(tarball::Tarball)),
+        Strategy::AppImage => Ok(Box::new(appimage::AppImage)),
     }
 }

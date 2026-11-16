@@ -1,9 +1,8 @@
-use std::{fs, path::Path};
-
-use super::Installer;
+use super::{Input, Installer, common};
 use crate::{
     distro::PackageManager,
     error::{Error, Result},
+    operation::Operation,
     step::Step,
 };
 
@@ -18,12 +17,12 @@ impl Native {
 }
 
 impl Installer for Native {
-    fn steps(&self, file: &Path) -> Result<Vec<Step>> {
-        let absolute = fs::canonicalize(file).map_err(Error::io(file))?;
+    fn plan(&self, input: &Input) -> Result<Vec<Operation>> {
+        let absolute = common::canonical(input.file)?;
         let path = absolute
             .to_str()
             .ok_or_else(|| Error::NonUtf8Path(absolute.clone()))?;
-        Ok(vec![install_step(self.manager, path)])
+        Ok(vec![Operation::Run(install_step(self.manager, path))])
     }
 }
 
@@ -42,7 +41,10 @@ fn install_step(manager: PackageManager, path: &str) -> Step {
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use super::*;
+    use crate::{format::Format, paths::Paths};
 
     #[test]
     fn each_manager_installs_a_local_file() {
@@ -64,9 +66,15 @@ mod tests {
 
     #[test]
     fn missing_file_is_an_io_error() {
-        let installer = Native::new(PackageManager::Dnf);
+        let paths = Paths::new("/h".into(), "/h/.local/share".into());
+        let input = Input {
+            file: Path::new("/nonexistent/a.rpm"),
+            format: Format::Rpm,
+            name: None,
+            paths: &paths,
+        };
         assert!(matches!(
-            installer.steps(Path::new("/nonexistent/a.rpm")),
+            Native::new(PackageManager::Dnf).plan(&input),
             Err(Error::Io { .. })
         ));
     }

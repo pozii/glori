@@ -3,6 +3,7 @@ mod commands;
 mod output;
 mod prompt;
 mod report;
+mod timestamp;
 
 use std::process::ExitCode;
 

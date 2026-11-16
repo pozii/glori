@@ -7,5 +7,14 @@ license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+bzip2 = "0.6.1"
+flate2 = "1.1.11"
+lzma-rust2 = "0.25.0"
+ruzstd = "0.9.1"
 serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+tar = "0.4.46"
 thiserror = "2.0.21"
+
+[dev-dependencies]
+tempfile = "3.27.0"

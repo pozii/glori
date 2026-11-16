@@ -30,6 +30,24 @@ pub enum Error {
     },
     #[error("`{command}` failed ({status})")]
     StepFailed { command: String, status: ExitStatus },
+    #[error("the HOME environment variable is not set")]
+    NoHome,
+    #[error("{0} is already installed; remove it first or choose another name with --name")]
+    AlreadyInstalled(String),
+    #[error("{0} was not installed by Glori")]
+    NotInstalled(String),
+    #[error("{0} already exists and Glori will not overwrite it")]
+    Conflict(PathBuf),
+    #[error("the archive contains an unsafe path: {0}")]
+    UnsafeArchive(String),
+    #[error("refusing to touch {0}: it is outside the directories Glori manages")]
+    UnsafeRemoval(PathBuf),
+    #[error("cannot derive a name from {0}; pass one with --name")]
+    NoName(String),
+    #[error("the archive is empty")]
+    EmptyArchive,
+    #[error("the registry at {path} is corrupted: {message}")]
+    Registry { path: PathBuf, message: String },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
