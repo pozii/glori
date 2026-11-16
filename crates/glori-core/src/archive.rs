@@ -9,8 +9,11 @@ use tar::EntryType;
 use crate::{
     error::{Error, Result},
     format::Format,
+    libs::{self, Binary, FileIndex},
     zstd_frames::ZstdFrames,
 };
+
+const MAX_ELF_BYTES: u64 = 512 * 1024 * 1024;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MemberKind {
@@ -37,6 +40,13 @@ pub struct Layout {
     pub has_desktop_file: bool,
 }
 
+#[derive(Debug, Clone)]
+pub struct Inspection {
+    pub layout: Layout,
+    pub binaries: Vec<Binary>,
+    pub files: FileIndex,
+}
+
 pub fn open(file: &Path, format: Format) -> Result<Box<dyn Read>> {
     let reader = BufReader::new(File::open(file).map_err(Error::io(file))?);
     let wrap = |error: std::io::Error| Error::io(file)(error);
@@ -49,11 +59,12 @@ pub fn open(file: &Path, format: Format) -> Result<Box<dyn Read>> {
     })
 }
 
-pub fn inspect(file: &Path, format: Format) -> Result<Layout> {
+pub fn inspect(file: &Path, format: Format) -> Result<Inspection> {
     let mut archive = tar::Archive::new(open(file, format)?);
     let mut members = Vec::new();
+    let mut found = Vec::new();
     for entry in archive.entries().map_err(Error::io(file))? {
-        let entry = entry.map_err(Error::io(file))?;
+        let mut entry = entry.map_err(Error::io(file))?;
         let path = entry.path().map_err(Error::io(file))?.into_owned();
         let link_target = entry
             .link_name()
@@ -66,16 +77,50 @@ pub fn inspect(file: &Path, format: Format) -> Result<Layout> {
         if kind == MemberKind::Hardlink && link_target.as_deref().is_none_or(|t| !is_safe(t)) {
             return Err(Error::UnsafeArchive(path.display().to_string()));
         }
-        members.push(Member {
-            path,
-            kind,
-            mode: entry.header().mode().unwrap_or(0),
-        });
+        let mode = entry.header().mode().unwrap_or(0);
+        let size = entry.header().size().unwrap_or(0);
+        if kind == MemberKind::File && may_be_binary(&path, mode) && size <= MAX_ELF_BYTES {
+            let mut data = Vec::with_capacity(usize::try_from(size).unwrap_or(0));
+            entry.read_to_end(&mut data).map_err(Error::io(file))?;
+            if let Some(elf) = libs::elf::parse(&data) {
+                found.push((path.clone(), elf));
+            }
+        }
+        members.push(Member { path, kind, mode });
     }
     if members.is_empty() {
         return Err(Error::EmptyArchive);
     }
-    Ok(layout_of(&members))
+    let layout = layout_of(&members);
+    let stripped = layout.top.is_some();
+    let relative = |path: &Path| -> PathBuf {
+        let parts = normal_components(path);
+        parts.into_iter().skip(usize::from(stripped)).collect()
+    };
+    let mut files = FileIndex::default();
+    for member in members.iter().filter(|m| m.kind != MemberKind::Directory) {
+        files.insert(relative(&member.path));
+    }
+    let binaries = found
+        .into_iter()
+        .map(|(path, elf)| Binary {
+            path: relative(&path),
+            elf,
+        })
+        .collect();
+    Ok(Inspection {
+        layout,
+        binaries,
+        files,
+    })
+}
+
+fn may_be_binary(path: &Path, mode: u32) -> bool {
+    let name = path
+        .file_name()
+        .map(|name| name.to_string_lossy())
+        .unwrap_or_default();
+    mode & 0o111 != 0 || name.contains(".so") || name.ends_with(".node")
 }
 
 fn kind_of(entry_type: EntryType) -> MemberKind {

@@ -12,7 +12,9 @@ fn fixture(name: &str) -> PathBuf {
 
 fn check(name: &str, format: Format) {
     let file = fixture(name);
-    let layout = archive::inspect(&file, format).unwrap_or_else(|e| panic!("{name}: {e}"));
+    let layout = archive::inspect(&file, format)
+        .unwrap_or_else(|e| panic!("{name}: {e}"))
+        .layout;
     assert_eq!(layout.top.as_deref(), Some("app-1.0"), "{name}");
     assert_eq!(layout.bin_executables, [PathBuf::from("bin/app")], "{name}");
 

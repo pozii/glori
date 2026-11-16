@@ -38,7 +38,7 @@ pub enum Command {
 
     #[command(
         about = "Install a package, archive or AppImage from a local file",
-        after_help = "Examples:\n  glori install ./app.rpm\n  glori install ./tool-1.2.tar.gz --dry-run\n  glori install ./App.AppImage --name myapp --yes\n  glori install ./tool.tar.gz --sha256 <hash>"
+        after_help = "Examples:\n  glori install ./app.rpm\n  glori install ./tool-1.2.tar.gz --dry-run\n  glori install ./App.AppImage --name myapp --yes\n  glori install ./tool.tar.gz --sha256 <hash>\n  glori install ./app.tar.xz --install-deps"
     )]
     Install {
         #[arg(help = "Path to the package")]
@@ -58,6 +58,12 @@ pub enum Command {
             help = "Install even if the signature is missing or the verification fails"
         )]
         allow_untrusted: bool,
+
+        #[arg(
+            long,
+            help = "Install the missing system libraries first, using the package manager"
+        )]
+        install_deps: bool,
 
         #[arg(
             long,

@@ -1,10 +1,10 @@
-use super::{Input, Installer, common};
+use super::{Input, Installer, Plan, common};
 use crate::{error::Result, operation::Operation, registry::Kind};
 
 pub struct AppImage;
 
 impl Installer for AppImage {
-    fn plan(&self, input: &Input) -> Result<Vec<Operation>> {
+    fn plan(&self, input: &Input) -> Result<Plan> {
         let file = common::canonical(input.file)?;
         let identity = common::identify(&file, input.name)?;
         let paths = input.paths;
@@ -21,7 +21,7 @@ impl Installer for AppImage {
             common::file_name(&file),
             vec![desktop_path, link.clone(), dest],
         );
-        Ok(vec![
+        Ok(Plan::of(vec![
             Operation::Copy {
                 from: file,
                 to: target.clone(),
@@ -30,6 +30,6 @@ impl Installer for AppImage {
             Operation::Link { target, link },
             desktop,
             record,
-        ])
+        ]))
     }
 }

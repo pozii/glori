@@ -1,9 +1,10 @@
 use std::path::PathBuf;
 
-use super::{Input, Installer, common};
+use super::{Input, Installer, Plan, common};
 use crate::{
     archive::{self, Layout},
     error::Result,
+    libs::{self, SystemLibs, elf::Class},
     operation::Operation,
     registry::Kind,
 };
@@ -11,12 +12,13 @@ use crate::{
 pub struct Tarball;
 
 impl Installer for Tarball {
-    fn plan(&self, input: &Input) -> Result<Vec<Operation>> {
+    fn plan(&self, input: &Input) -> Result<Plan> {
         let file = common::canonical(input.file)?;
         let identity = common::identify(&file, input.name)?;
         let paths = input.paths;
         common::ensure_free(paths, &identity.name)?;
-        let layout = archive::inspect(&file, input.format)?;
+        let inspection = archive::inspect(&file, input.format)?;
+        let layout = inspection.layout;
         let dest = paths.app_dir(&identity.name);
         let launchers = launchers(&layout, &identity.name);
         let mut links = Vec::new();
@@ -56,7 +58,26 @@ impl Installer for Tarball {
             common::file_name(&file),
             files,
         ));
-        Ok(operations)
+        let host = libs::host_machine();
+        let mut libraries = libs::analyze(
+            &inspection.binaries,
+            &launchers,
+            &inspection.files,
+            &SystemLibs::load(host),
+            host,
+        );
+        if let (Some(manager), false) = (input.manager, libraries.missing.is_empty()) {
+            let class = if cfg!(target_pointer_width = "64") {
+                Class::Bits64
+            } else {
+                Class::Bits32
+            };
+            libs::resolve_packages(&mut libraries, manager, class);
+        }
+        Ok(Plan {
+            operations,
+            libraries,
+        })
     }
 }
 

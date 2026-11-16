@@ -3,6 +3,7 @@ mod doctor;
 mod execute;
 mod info;
 mod install;
+mod libraries;
 mod list;
 mod remove;
 
@@ -21,6 +22,7 @@ pub fn run(cli: Cli) -> anyhow::Result<ExitCode> {
             yes,
             allow_untrusted,
             sha256,
+            install_deps,
             name,
         } => install::run(
             &file,
@@ -31,6 +33,7 @@ pub fn run(cli: Cli) -> anyhow::Result<ExitCode> {
                 json: cli.json,
                 name,
                 sha256,
+                install_deps,
             },
         )
         .map(|()| ExitCode::SUCCESS),

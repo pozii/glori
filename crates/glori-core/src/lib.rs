@@ -6,6 +6,7 @@ pub mod error;
 pub mod format;
 pub mod fsops;
 pub mod installer;
+pub mod libs;
 pub mod naming;
 pub mod operation;
 pub mod paths;

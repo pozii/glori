@@ -4,11 +4,11 @@ use anyhow::bail;
 use glori_core::{
     Elevation, Operation, Paths, Trust,
     installer::{self, Input},
-    privilege, verify,
+    libs, privilege, verify,
 };
 use serde::Serialize;
 
-use super::execute;
+use super::{execute, libraries};
 use crate::{output, prompt, report::Summary};
 
 #[derive(Serialize)]
@@ -17,6 +17,7 @@ struct Plan<'a> {
     summary: &'a Summary<'a>,
     elevation: Option<Elevation>,
     operations: &'a [Operation],
+    libraries: &'a libs::Report,
 }
 
 pub struct Options {
@@ -26,6 +27,7 @@ pub struct Options {
     pub json: bool,
     pub name: Option<String>,
     pub sha256: Option<String>,
+    pub install_deps: bool,
 }
 
 pub fn run(file: &Path, options: Options) -> anyhow::Result<()> {
@@ -36,34 +38,58 @@ pub fn run(file: &Path, options: Options) -> anyhow::Result<()> {
         json,
         name,
         sha256,
+        install_deps,
     } = options;
     if json && !dry_run {
         bail!("--json is only supported together with --dry-run");
     }
     let summary = Summary::detect(file, &verify::Options { sha256 })?;
     let paths = Paths::from_env()?;
+    let manager = summary.distro.family.package_manager();
     let input = Input {
         file,
         format: summary.format,
         name: name.as_deref(),
         paths: &paths,
+        manager,
     };
-    let operations = installer::select(summary.strategy)?.plan(&input)?;
+    let plan = installer::select(summary.strategy)?.plan(&input)?;
+    let (mut operations, libraries) = (plan.operations, plan.libraries);
+    let packages = libraries.packages();
+    let deps_step = manager
+        .filter(|_| install_deps && !packages.is_empty())
+        .map(|manager| Operation::Run(installer::install_packages(manager, &packages)));
+    let deps_will_be_installed = deps_step.is_some();
+    operations.splice(0..0, deps_step);
     let elevation = privilege::detect();
     if json {
         return output::json(&Plan {
             summary: &summary,
             elevation: elevation.as_ref().ok().copied(),
             operations: &operations,
+            libraries: &libraries,
         });
     }
     summary.print();
     execute::print_operations(&operations, &elevation);
+    libraries::print(&libraries, manager, elevation.as_ref().ok().copied());
+    if install_deps && !deps_will_be_installed && !libraries.missing.is_empty() {
+        println!(
+            "{}",
+            output::yellow(
+                "--install-deps has nothing to install: no providing packages were found"
+            )
+        );
+    }
     if dry_run {
         println!("{}", output::dim("Dry run: nothing was changed."));
         return Ok(());
     }
-    let question = trust_question(summary.verification, allow_untrusted, yes)?;
+    let question = libraries::question(
+        &libraries,
+        deps_will_be_installed,
+        trust_question(summary.verification, allow_untrusted, yes)?,
+    );
     let elevation = execute::needs_elevation(&operations, elevation)?;
     if !yes && !prompt::confirm(question)? {
         bail!("cancelled, nothing was changed");

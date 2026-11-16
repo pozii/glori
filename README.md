@@ -30,6 +30,7 @@ Early development, no release yet. Working today:
 - `glori install` for packages that belong to your distribution (`.deb` on Debian-based systems, `.rpm` on Fedora and openSUSE, Arch packages on Arch), with RPM signature checks
 - `glori install` for tarballs (`.tar.gz`, `.tar.xz`, `.tar.zst`, `.tar.bz2`) and AppImages, entirely in your home directory, no root needed
 - SHA-256 and GPG verification of downloads
+- detection of missing system libraries before a tarball is installed, with the package that provides each one
 - `glori list` and `glori remove` for everything installed that way
 - `glori info`, `glori doctor` and shell completions
 
@@ -39,7 +40,7 @@ Not done yet: installing a package from another distribution family (for example
 
 | Command | Purpose |
 |---|---|
-| `glori install <file>` | Install a package, archive or AppImage (`--dry-run`, `--yes`, `--name <name>`, `--sha256 <hash>`, `--allow-untrusted`) |
+| `glori install <file>` | Install a package, archive or AppImage (`--dry-run`, `--yes`, `--name <name>`, `--sha256 <hash>`, `--install-deps`, `--allow-untrusted`) |
 | `glori remove <name>` | Remove something Glori installed (`--dry-run`, `--yes`) |
 | `glori list` | List what Glori installed |
 | `glori info <file>` | Show format, distribution, verification result and the install plan (`--sha256 <hash>`) |
@@ -68,6 +69,24 @@ The name and version come from the file name (`ripgrep-15.2.0-x86_64-unknown-lin
 - Extraction happens in a temporary directory and is moved into place only on success, so a broken or truncated download leaves nothing behind.
 - Downloads are checked when there is something to check them against (see below). A failed check blocks the install, and `--allow-untrusted` is needed to go ahead anyway.
 - Every command can show its plan first with `--dry-run`.
+
+## Missing system libraries
+
+A tarball often needs libraries that are not in the archive. Glori reads the dynamic dependencies of every program and library inside it before installing, and compares them with what is bundled in the archive and what your system has:
+
+```
+Missing system libraries
+  libcrypt.so.1        libxcrypt-compat   needed by libfilezilla.so.61
+  libgdk-x11-2.0.so.0  gtk2               needed by filezilla, libwx_gtk2u_core-3.2.so.0
+
+Install them first with:
+  sudo dnf install -y gtk2 libxcrypt-compat
+or run this command again with --install-deps.
+```
+
+`--install-deps` runs that package install as the first step of the plan. Package names come from the distribution's own tools: `dnf repoquery`, `zypper`, `apt-file` (Debian and Ubuntu, `apt install apt-file && apt-file update`) and `pacman -F` (Arch, `pacman -Fy`). Where a lookup tool is missing or out of date Glori tells you what to run, and libraries it cannot map to a package are listed without one. A program built for another CPU architecture is reported as `Cannot run here`. Missing libraries are a warning, not a block: some programs start without them.
+
+This check applies to tarballs. Native packages already have their dependencies resolved by the package manager, and AppImages bundle theirs.
 
 ## Verifying downloads
 

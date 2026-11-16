@@ -27,6 +27,14 @@ cargo test
 - Keep code modular: one responsibility per module.
 - New formats, sources and distributions are added as new modules behind the existing traits, without changing the core.
 
+## Checking the ELF parser against the system
+
+The parser that reads library dependencies is compared with `readelf` on the ELF files installed on your machine by a test that is skipped by default because it takes about a minute:
+
+```
+cargo test -p glori-core --test elf_system -- --ignored
+```
+
 ## Testing other distributions
 
 Set `GLORI_OS_RELEASE` to the path of an os-release file to make Glori behave as if it ran on that distribution. Use it together with `--dry-run`.
