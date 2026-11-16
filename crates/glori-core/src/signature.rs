@@ -97,24 +97,35 @@ mod tests {
     Payload SHA256 digest: BAD (Expected 74444c != 4b8fb2)
 ";
 
-    const LEGACY_SIGNED: &str = "old.rpm:
-    Header V4 RSA/SHA256 Signature, key ID 8e1431d5: OK
-    Header SHA1 digest: OK
-    Payload SHA256 digest: OK
-    V4 RSA/SHA256 Signature, key ID 8e1431d5: OK
-    MD5 digest: OK
-";
-
-    const LEGACY_UNSIGNED: &str = "old.rpm:
+    const LEGACY_SIGNED: &str = "signed.rpm:
+    Header V4 RSA/SHA256 Signature, key ID 350d275d: OK
+    Header SHA256 digest: OK
     Header SHA1 digest: OK
     Payload SHA256 digest: OK
     MD5 digest: OK
 ";
 
-    const UNKNOWN_KEY: &str = "third.rpm:
-    Header V4 RSA/SHA256 Signature, key ID 12345678: NOKEY
+    const LEGACY_UNSIGNED: &str = "unsigned.rpm:
+    Header SHA256 digest: OK
     Header SHA1 digest: OK
     Payload SHA256 digest: OK
+    MD5 digest: OK
+";
+
+    const LEGACY_CORRUPTED: &str = "bad.rpm:
+    Header V4 RSA/SHA256 Signature, key ID 350d275d: BAD
+    Header SHA256 digest: BAD (Expected 27dfb1 != 2dc274)
+    Header SHA1 digest: BAD (Expected 5aaeec != d23cad)
+    Payload SHA256 digest: OK
+    MD5 digest: BAD (Expected 86571c != 576db3)
+";
+
+    const UNKNOWN_KEY: &str = "nokey.rpm:
+    Header V4 RSA/SHA256 Signature, key ID 350d275d: NOKEY
+    Header SHA256 digest: OK
+    Header SHA1 digest: OK
+    Payload SHA256 digest: OK
+    MD5 digest: OK
 ";
 
     #[test]
@@ -135,6 +146,10 @@ mod tests {
     #[test]
     fn a_bad_digest_is_invalid_even_when_the_signature_line_is_ok() {
         assert_eq!(parse_rpm_checksig(CORRUPTED, "", false), Trust::Invalid);
+        assert_eq!(
+            parse_rpm_checksig(LEGACY_CORRUPTED, "", false),
+            Trust::Invalid
+        );
     }
 
     #[test]
