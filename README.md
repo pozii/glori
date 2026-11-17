@@ -181,15 +181,3 @@ Cargo workspace with a reusable core and thin frontends.
 - `glori-gui` - planned, built on the same core
 
 Installing is a list of operations: run a command, extract, copy, link, write a file, update the registry. An `Installer` turns a file into operations, the CLI shows them, and only then are they applied. Archive decoding uses pure Rust crates so the binary can be built fully static with musl.
-
-### Support
-
-Glori is free and open source. If it saves you time, you can support its development on [Buy Me a Coffee](https://buymeacoffee.com/pozii).
-
-### Contributing
-
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
-
-### License
-
-Apache License 2.0. See [LICENSE](LICENSE).
