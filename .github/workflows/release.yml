@@ -99,7 +99,7 @@ jobs:
       - name: Checksums
         working-directory: out
         run: sha256sum * > SHA256SUMS && cat SHA256SUMS
-      - uses: actions/attest-build-provenance@v2
+      - uses: actions/attest-build-provenance@v4
         with:
           subject-path: out/*
       - name: Create the release
